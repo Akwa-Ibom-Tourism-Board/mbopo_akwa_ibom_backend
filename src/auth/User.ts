@@ -10,17 +10,23 @@ export enum Gender {
 
 export interface UserAttributes {
   id: string;
-  firstName: string;
-  lastName: string;
   email: string;
-  phoneNumber: string;
   password: string;
-  nin: string;
-  vin: string;
-  gender: Gender;
-  dateOfBirth: string;
-  localGovernment: string;
-  ward: string;
+  // Unset until the applicant completes the one-time NIN/VIN identity
+  // check from their dashboard (see applicants/registration/verify-identity)
+  // — not collected at registration time any more. `identityVerified` is
+  // the single source of truth for whether the fields below are populated.
+  identityVerified: boolean;
+  firstName?: string | null;
+  lastName?: string | null;
+  phoneNumber?: string | null;
+  nin?: string | null;
+  vin?: string | null;
+  gender?: Gender | null;
+  dateOfBirth?: string | null;
+  localGovernment?: string | null;
+  ward?: string | null;
+  avatarUrl?: string | null;
   emailVerified: boolean;
   emailOtpHash?: string | null;
   emailOtpExpiresAt?: Date | null;
@@ -45,7 +51,7 @@ User.init(
 
     firstName: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
       get() {
         return toTitleCase(this.getDataValue("firstName"));
       },
@@ -56,7 +62,7 @@ User.init(
 
     lastName: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
       get() {
         return toTitleCase(this.getDataValue("lastName"));
       },
@@ -79,7 +85,7 @@ User.init(
 
     phoneNumber: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
       validate: {
         is: {
           args: NIGERIAN_PHONE_REGEX,
@@ -93,9 +99,18 @@ User.init(
       allowNull: false,
     },
 
+    identityVerified: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+
+    // A NULL nin/vin (unverified account) never collides with the unique
+    // index — Postgres treats every NULL as distinct — so only an actual
+    // duplicate, verified NIN/VIN is ever rejected.
     nin: {
       type: DataTypes.STRING(11),
-      allowNull: false,
+      allowNull: true,
       unique: {
         name: "User_nin_key",
         msg: "This NIN is already registered",
@@ -110,7 +125,7 @@ User.init(
 
     vin: {
       type: DataTypes.STRING(19),
-      allowNull: false,
+      allowNull: true,
       unique: {
         name: "User_vin_key",
         msg: "This VIN is already registered",
@@ -125,7 +140,7 @@ User.init(
 
     gender: {
       type: DataTypes.ENUM(...Object.values(Gender)),
-      allowNull: false,
+      allowNull: true,
       validate: {
         isIn: [Object.values(Gender)],
       },
@@ -133,17 +148,22 @@ User.init(
 
     dateOfBirth: {
       type: DataTypes.DATEONLY,
-      allowNull: false,
+      allowNull: true,
     },
 
     localGovernment: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
     },
 
     ward: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
+    },
+
+    avatarUrl: {
+      type: DataTypes.TEXT,
+      allowNull: true,
     },
 
     emailVerified: {

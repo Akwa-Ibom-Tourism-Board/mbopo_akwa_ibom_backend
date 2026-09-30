@@ -2,6 +2,7 @@ import { UniqueConstraintError } from "sequelize";
 import errorUtilities from "../../../configurations/error-handler";
 import responseUtilities from "../../../configurations/response";
 import { StatusCodes } from "../../../configurations/statusCodes";
+import { User } from "../../../auth/User";
 import { Application, ApplicationStatus } from "../Application";
 
 const saveDraftService = errorUtilities.withServiceErrorHandling(
@@ -9,6 +10,17 @@ const saveDraftService = errorUtilities.withServiceErrorHandling(
     const existing = await Application.findOne({ where: { applicantId } });
 
     if (!existing) {
+      // Defense in depth — the dashboard gates this behind the NIN/VIN
+      // identity check client-side, but a direct API call must be stopped
+      // here too: no draft can exist for an applicant who hasn't verified.
+      const applicant = await User.findByPk(applicantId);
+      if (!applicant?.get("identityVerified")) {
+        throw errorUtilities.createError(
+          "Please verify your NIN and VIN before starting your application",
+          StatusCodes.FORBIDDEN,
+        );
+      }
+
       let created;
       try {
         created = await Application.create({

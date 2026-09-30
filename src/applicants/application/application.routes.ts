@@ -15,7 +15,10 @@ const router = express.Router();
 
 // Loose — every field optional, only whatever is present gets validated.
 // Used by both the draft create/update routes and as a starting point for
-// the full submit schema below.
+// the full submit schema below. Everything here is freely re-editable
+// while the application is still a Draft — the video pitch is not part of
+// this schema at all: it's uploaded (and locked) through /photo, never
+// through /draft. See upload-photo.service.ts's videoPitch lock check.
 const draftFieldSchema = {
   middleName: Joi.string().trim().allow("").optional(),
   phone: Joi.string().trim().optional(),
@@ -42,14 +45,14 @@ export const draftSchema = Joi.object(draftFieldSchema);
 
 // The full schema an application must satisfy to submit — every field
 // required (middleName/socialMedia/institution/initiative excepted, which
-// stay optional per the frontend's RegistrationFormValues), all three photo
-// URLs present, all three declarations explicitly true. Run in
-// submit.service.ts against the merged draft, not directly as route
-// middleware, since submit validates stored + incoming data together.
+// stay optional per the frontend's RegistrationFormValues), every photo URL
+// present (including both full-image slots) and the video pitch URL
+// present, all three declarations explicitly true. Run in submit.service.ts
+// against the merged draft, not directly as route middleware, since submit
+// validates stored + incoming data together.
 export const applicationSubmitSchema = Joi.object({
-  middleName: Joi.string().trim().allow("", null).optional(),
+  ...draftFieldSchema,
   phone: Joi.string().trim().required(),
-  socialMedia: Joi.string().trim().allow("", null).optional(),
   nextOfKin: Joi.string().trim().required(),
   nextOfKinPhone: Joi.string().trim().required(),
   village: Joi.string().trim().required(),
@@ -57,11 +60,9 @@ export const applicationSubmitSchema = Joi.object({
   city: Joi.string().trim().required(),
   address: Joi.string().trim().required(),
   education: Joi.string().trim().required(),
-  institution: Joi.string().trim().allow("", null).optional(),
   occupation: Joi.string().trim().required(),
   talents: Joi.string().trim().required(),
   languages: Joi.string().trim().required(),
-  initiative: Joi.string().trim().allow("", null).optional(),
   why: Joi.string().trim().required(),
   declarationIdentity: Joi.boolean().valid(true).required(),
   declarationAccuracy: Joi.boolean().valid(true).required(),
@@ -69,6 +70,8 @@ export const applicationSubmitSchema = Joi.object({
   passportPhotoUrl: Joi.string().trim().required(),
   certificateOfOriginUrl: Joi.string().trim().required(),
   fullImageUrl: Joi.string().trim().required(),
+  fullImageUrl2: Joi.string().trim().required(),
+  videoPitchUrl: Joi.string().trim().required(),
 }).messages({
   "any.required": "{{#label}} is required",
   "any.only": "{{#label}} must be accepted",
@@ -77,11 +80,17 @@ export const applicationSubmitSchema = Joi.object({
 
 const photoFieldSchema = Joi.object({
   field: Joi.string()
-    .valid("passportPhoto", "certificateOfOrigin", "fullImage")
+    .valid(
+      "passportPhoto",
+      "certificateOfOrigin",
+      "fullImage",
+      "fullImage2",
+      "videoPitch",
+    )
     .required()
     .messages({
       "any.only":
-        "field must be one of passportPhoto, certificateOfOrigin, fullImage",
+        "field must be one of passportPhoto, certificateOfOrigin, fullImage, fullImage2, videoPitch",
       "any.required": "field is required",
     }),
 });

@@ -32,6 +32,8 @@ export interface ApplicationAttributes {
   passportPhotoUrl?: string | null;
   certificateOfOriginUrl?: string | null;
   fullImageUrl?: string | null;
+  fullImageUrl2?: string | null;
+  videoPitchUrl?: string | null;
   status: ApplicationStatus;
   referenceCode?: string | null;
   submittedAt?: Date | null;
@@ -101,6 +103,8 @@ Application.init(
     passportPhotoUrl: { type: DataTypes.TEXT, allowNull: true },
     certificateOfOriginUrl: { type: DataTypes.TEXT, allowNull: true },
     fullImageUrl: { type: DataTypes.TEXT, allowNull: true },
+    fullImageUrl2: { type: DataTypes.TEXT, allowNull: true },
+    videoPitchUrl: { type: DataTypes.TEXT, allowNull: true },
 
     status: {
       type: DataTypes.ENUM(...Object.values(ApplicationStatus)),

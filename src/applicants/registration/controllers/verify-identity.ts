@@ -1,11 +1,12 @@
 import { Request, Response } from "express";
 import errorUtilities from "../../../configurations/error-handler";
 import responseUtilities from "../../../configurations/response";
-import registerService from "../services/register.service";
+import verifyIdentityService from "../services/verify-identity.service";
 
-const register = errorUtilities.withControllerErrorHandling(
+const verifyIdentity = errorUtilities.withControllerErrorHandling(
   async (request: Request, response: Response) => {
-    const result = await registerService(request.body);
+    const { nin, vin } = request.body;
+    const result = await verifyIdentityService(request.user!.id, { nin, vin });
 
     return responseUtilities.responseHandler(
       response,
@@ -16,4 +17,4 @@ const register = errorUtilities.withControllerErrorHandling(
   },
 );
 
-export default register;
+export default verifyIdentity;

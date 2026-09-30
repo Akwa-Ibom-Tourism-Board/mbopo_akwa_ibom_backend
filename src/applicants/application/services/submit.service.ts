@@ -4,6 +4,8 @@ import responseUtilities from "../../../configurations/response";
 import { StatusCodes } from "../../../configurations/statusCodes";
 import { Application, ApplicationStatus } from "../Application";
 import { applicationSubmitSchema } from "../application.routes";
+import { createNotification } from "../../../notifications/services/create.service";
+import { NotificationType } from "../../../notifications/Notification";
 
 const generateReferenceCode = (): string => {
   const year = new Date().getFullYear();
@@ -73,6 +75,13 @@ const submitService = errorUtilities.withServiceErrorHandling(
     }
 
     await application.reload();
+
+    await createNotification({
+      userId: applicantId,
+      title: "Application submitted",
+      body: `Your Mbopo Akwa Ibom application was submitted successfully. Your reference code is ${referenceCode}.`,
+      type: NotificationType.Application,
+    });
 
     return responseUtilities.handleServicesResponse(
       StatusCodes.OK,

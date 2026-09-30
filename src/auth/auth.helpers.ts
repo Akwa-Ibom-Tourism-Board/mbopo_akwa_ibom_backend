@@ -61,17 +61,19 @@ export const serializeUser = (user: User) => {
   const json: any = user.toJSON();
   return {
     id: json.id,
-    firstName: json.firstName,
-    lastName: json.lastName,
     email: json.email,
-    phoneNumber: json.phoneNumber,
-    nin: json.nin,
-    vin: json.vin,
-    gender: json.gender,
-    dateOfBirth: json.dateOfBirth,
-    localGovernment: json.localGovernment,
-    ward: json.ward,
+    avatarUrl: json.avatarUrl ?? null,
     emailVerified: json.emailVerified,
+    identityVerified: json.identityVerified,
+    firstName: json.firstName ?? null,
+    lastName: json.lastName ?? null,
+    phoneNumber: json.phoneNumber ?? null,
+    nin: json.nin ?? null,
+    vin: json.vin ?? null,
+    gender: json.gender ?? null,
+    dateOfBirth: json.dateOfBirth ?? null,
+    localGovernment: json.localGovernment ?? null,
+    ward: json.ward ?? null,
     createdAt: json.createdAt,
   };
 };

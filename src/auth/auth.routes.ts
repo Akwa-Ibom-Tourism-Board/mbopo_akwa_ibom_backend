@@ -2,9 +2,11 @@ import express from "express";
 import Joi from "joi";
 import validate from "../configurations/validate";
 import authenticate from "../configurations/authenticate";
+import upload from "../configurations/upload";
 import { limiter, otpResendLimiter } from "../configurations/rate-limit";
 import { NIGERIAN_PHONE_REGEX } from "../configurations/constants";
 
+import register from "./controllers/register";
 import identityCheck from "./controllers/identity-check";
 import verifyEmailOtp from "./controllers/verify-email-otp";
 import resendEmailOtp from "./controllers/resend-email-otp";
@@ -17,6 +19,7 @@ import me from "./controllers/me";
 import updateMe from "./controllers/update-me";
 import changePassword from "./controllers/change-password";
 import logout from "./controllers/logout";
+import uploadAvatar from "./controllers/upload-avatar";
 
 const router = express.Router();
 
@@ -61,6 +64,10 @@ const passwordSchema = Joi.string().min(8).max(128).required().messages({
   "any.required": "Password is required",
 });
 
+const registerSchema = Joi.object({
+  email: emailSchema,
+  password: passwordSchema,
+});
 const identityCheckSchema = Joi.object({ nin: ninSchema, vin: vinSchema });
 const verifyEmailOtpSchema = Joi.object({ email: emailSchema, otp: otpSchema });
 const resendEmailOtpSchema = Joi.object({ email: emailSchema });
@@ -85,7 +92,14 @@ const changePasswordSchema = Joi.object({
   newPassword: passwordSchema,
 });
 
-router.post("/identity-check", limiter, validate(identityCheckSchema), identityCheck);
+router.post("/register", limiter, validate(registerSchema), register);
+router.post(
+  "/identity-check",
+  authenticate,
+  limiter,
+  validate(identityCheckSchema),
+  identityCheck,
+);
 router.post("/verify-email-otp", limiter, validate(verifyEmailOtpSchema), verifyEmailOtp);
 router.post("/resend-email-otp", otpResendLimiter, validate(resendEmailOtpSchema), resendEmailOtp);
 router.post("/login", limiter, validate(loginSchema), login);
@@ -95,6 +109,7 @@ router.post("/forgot-password", limiter, validate(forgotPasswordSchema), forgotP
 router.post("/reset-password", limiter, validate(resetPasswordSchema), resetPassword);
 router.get("/me", authenticate, me);
 router.patch("/me", authenticate, validate(updateMeSchema), updateMe);
+router.post("/avatar", authenticate, upload.single("avatar"), uploadAvatar);
 router.post("/change-password", authenticate, validate(changePasswordSchema), changePassword);
 router.post("/logout", authenticate, logout);
 
