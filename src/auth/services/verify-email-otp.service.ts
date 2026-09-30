@@ -3,6 +3,8 @@ import responseUtilities from "../../configurations/response";
 import { StatusCodes } from "../../configurations/statusCodes";
 import { User } from "../User";
 import { compareHash } from "../auth.helpers";
+import { createNotification } from "../../notifications/services/create.service";
+import { NotificationType } from "../../notifications/Notification";
 
 const MAX_OTP_ATTEMPTS = 5;
 
@@ -49,6 +51,13 @@ const verifyEmailOtpService = errorUtilities.withServiceErrorHandling(
       emailOtpHash: null,
       emailOtpExpiresAt: null,
       emailOtpAttempts: 0,
+    });
+
+    await createNotification({
+      userId: user.get("id") as string,
+      title: "Welcome to Mbopo Akwa Ibom",
+      body: "Your email has been verified. You can now complete your application.",
+      type: NotificationType.Account,
     });
 
     return responseUtilities.handleServicesResponse(StatusCodes.OK, "Email verified successfully");

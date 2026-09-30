@@ -57,4 +57,21 @@ export const validateQuery = (schema: Joi.Schema) => {
   };
 };
 
+/** Same as `validate`, but validates `req.params` (e.g. a route's `:id`). */
+export const validateParams = (schema: Joi.Schema) => {
+  return (request: Request, response: Response, next: NextFunction): any => {
+    const { error, value } = schema.validate(request.params, {
+      abortEarly: false,
+      stripUnknown: true,
+    });
+
+    if (error) {
+      return respondWithErrors(response, error);
+    }
+
+    request.params = value;
+    return next();
+  };
+};
+
 export default validate;

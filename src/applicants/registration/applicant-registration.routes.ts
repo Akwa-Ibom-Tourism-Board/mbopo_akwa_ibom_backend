@@ -1,13 +1,13 @@
 import express from "express";
 import Joi from "joi";
 import validate from "../../configurations/validate";
+import authenticate from "../../configurations/authenticate";
 import { limiter } from "../../configurations/rate-limit";
-import { NIGERIAN_PHONE_REGEX } from "../../configurations/constants";
-import register from "./controllers/register";
+import verifyIdentity from "./controllers/verify-identity";
 
 const router = express.Router();
 
-const registerSchema = Joi.object({
+const verifyIdentitySchema = Joi.object({
   nin: Joi.string()
     .trim()
     .length(11)
@@ -22,25 +22,17 @@ const registerSchema = Joi.object({
     "string.length": "VIN must be exactly 19 characters",
     "any.required": "VIN is required",
   }),
-  email: Joi.string().trim().email().lowercase().required().messages({
-    "string.email": "Invalid email format",
-    "any.required": "Email is required",
-  }),
-  phoneNumber: Joi.string()
-    .trim()
-    .pattern(NIGERIAN_PHONE_REGEX)
-    .required()
-    .messages({
-      "string.pattern.base":
-        "Invalid Nigerian phone number. Format: 0803XXXXXXX or 234803XXXXXXX",
-      "any.required": "Phone number is required",
-    }),
-  password: Joi.string().min(8).max(128).required().messages({
-    "string.min": "Password must be at least 8 characters",
-    "any.required": "Password is required",
-  }),
 });
 
-router.post("/register", limiter, validate(registerSchema), register);
+// Authenticated — reachable only once the applicant has registered,
+// verified their email and logged in. One-time: verify-identity.service
+// rejects a second call once `identityVerified` is true.
+router.post(
+  "/verify-identity",
+  authenticate,
+  limiter,
+  validate(verifyIdentitySchema),
+  verifyIdentity,
+);
 
 export default router;

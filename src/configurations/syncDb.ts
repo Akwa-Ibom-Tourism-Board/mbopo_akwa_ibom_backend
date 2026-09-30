@@ -1,6 +1,7 @@
 import { database } from "./database";
 import "../auth/User";
 import "../applicants/application/Application";
+import "../notifications/Notification";
 
 export async function syncDatabases() {
   console.log("📥 Registering models...");
