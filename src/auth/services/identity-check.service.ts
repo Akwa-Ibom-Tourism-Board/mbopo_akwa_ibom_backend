@@ -45,7 +45,7 @@ const identityCache = new Map<string, CacheEntry>();
 const cacheKey = (nin: string, vin: string) => `${nin}:${vin}`;
 
 /**
- * Calls LumiID + the VIN provider (or reuses a recent cached result) and
+ * Calls the NIN and VIN providers (or reuses a recent cached result) and
  * maps their raw shapes into this project's internal identity shape.
  */
 const lookupIdentity = async (
@@ -65,7 +65,10 @@ const lookupIdentity = async (
     verifyVIN(vin),
   ]);
 
-  const dateOfBirth = parseDateOfBirth(ninResult.birthdate);
+  console.log("NIN Result:", ninResult);
+  console.log("VIN Result:", vinResult);
+
+  const dateOfBirth = parseDateOfBirth(ninResult.dateOfBirth);
   if (!dateOfBirth) {
     throw errorUtilities.createError(
       "NIN record has an invalid date of birth",
@@ -76,8 +79,8 @@ const lookupIdentity = async (
   const identity: VerifiedIdentity = {
     nin,
     vin,
-    firstName: ninResult.firstname,
-    lastName: ninResult.lastname,
+    firstName: ninResult.firstName,
+    lastName: ninResult.lastName,
     gender:
       ninResult.gender?.toLowerCase() === "female"
         ? Gender.Female

@@ -9,7 +9,9 @@
     "dev": "cross-env NODE_ENV=development nodemon",
     "prod": "cross-env NODE_ENV=production node dist/app.js",
     "start": "node dist/app.js",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "migrate:local": "flyway -configFiles=flyway.conf,flyway-local.conf migrate",
+    "migrate:prod": "flyway -configFiles=flyway.conf,flyway-prod.conf migrate"
   },
   "keywords": [],
   "author": "",

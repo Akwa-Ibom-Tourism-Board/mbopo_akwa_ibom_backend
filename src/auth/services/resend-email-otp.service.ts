@@ -16,6 +16,8 @@ const resendEmailOtpService = errorUtilities.withServiceErrorHandling(
     if (user && !user.get("emailVerified")) {
       const otp = generateNumericOtp();
 
+      console.log('TP', otp)
+
       await user.update({
         emailOtpHash: await hashData(otp),
         emailOtpExpiresAt: new Date(Date.now() + EMAIL_OTP_TTL_MS),
