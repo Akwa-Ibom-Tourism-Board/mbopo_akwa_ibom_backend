@@ -1,100 +1,53 @@
-import fs from "fs";
 import errorUtilities from "../../../configurations/error-handler";
 import responseUtilities from "../../../configurations/response";
 import { StatusCodes } from "../../../configurations/statusCodes";
-import {
-  buildFileUrl,
-  isMimetypeAllowedForField,
-} from "../../../configurations/upload";
-import { User } from "../../../auth/User";
-import { Application, ApplicationStatus } from "../Application";
+import { database } from "../../../configurations/database";
+import { assertValidUploadReference, PhotoField } from "../../../configurations/cloudinary";
+import { lockOrCreateDraft } from "../application.helpers";
 
-type PhotoField =
-  | "passportPhoto"
-  | "certificateOfOrigin"
-  | "fullImage"
-  | "fullImage2"
-  | "videoPitch";
-
-const PHOTO_FIELD_TO_COLUMN: Record<PhotoField, string> = {
-  passportPhoto: "passportPhotoUrl",
-  certificateOfOrigin: "certificateOfOriginUrl",
-  fullImage: "fullImageUrl",
-  fullImage2: "fullImageUrl2",
-  videoPitch: "videoPitchUrl",
+export const PHOTO_FIELD_TO_COLUMNS: Record<PhotoField, { url: string; publicId: string }> = {
+  passportPhoto: { url: "passportPhotoUrl", publicId: "passportPhotoPublicId" },
+  certificateOfOrigin: { url: "certificateOfOriginUrl", publicId: "certificateOfOriginPublicId" },
+  fullImage: { url: "fullImageUrl", publicId: "fullImagePublicId" },
+  fullImage2: { url: "fullImageUrl2", publicId: "fullImagePublicId2" },
+  videoPitch: { url: "videoPitchUrl", publicId: "videoPitchPublicId" },
 };
 
-const FIELD_ERROR_MESSAGES: Partial<Record<PhotoField, string>> = {
-  certificateOfOrigin: "Certificate of origin must be a JPEG, PNG, or PDF file",
-  videoPitch: "Video pitch must be a WebM or MP4 file",
-};
+export const VIDEO_LOCKED_ERROR =
+  "Your video pitch has already been submitted and can't be changed";
 
 const uploadPhotoService = errorUtilities.withServiceErrorHandling(
-  async (applicantId: string, field: PhotoField, file: Express.Multer.File) => {
-    if (!isMimetypeAllowedForField(field, file.mimetype)) {
-      fs.unlink(file.path, () => {});
-      throw errorUtilities.createError(
-        FIELD_ERROR_MESSAGES[field] ?? "Photo must be a JPEG or PNG image",
-        StatusCodes.BAD_REQUEST,
-      );
-    }
+  async (
+    applicantId: string,
+    input: { field: PhotoField; url: string; publicId: string },
+  ) => {
+    const { field, url, publicId } = input;
 
-    let application = await Application.findOne({ where: { applicantId } });
+    // Pure check, no DB — fail before taking any lock.
+    assertValidUploadReference(applicantId, field, url, publicId);
 
-    if (application && application.get("status") !== ApplicationStatus.Draft) {
-      fs.unlink(file.path, () => {});
-      throw errorUtilities.createError(
-        "This application has already been submitted and can no longer be edited",
-        StatusCodes.CONFLICT,
-      );
-    }
+    const columns = PHOTO_FIELD_TO_COLUMNS[field];
 
-    // The video pitch is the one field that isn't freely re-editable while
-    // still a Draft — every other photo can be replaced any number of
-    // times, but once a video pitch has been uploaded it's locked in for
-    // good. See application.routes.ts's draftFieldSchema comment.
-    if (field === "videoPitch" && application?.get("videoPitchUrl")) {
-      fs.unlink(file.path, () => {});
-      throw errorUtilities.createError(
-        "Your video pitch has already been submitted and can't be changed",
-        StatusCodes.CONFLICT,
-      );
-    }
+    // The status / identity / video-lock checks and the write happen under
+    // one row lock, so a concurrent submit or a second video-pitch save
+    // can't slip between the check and the update.
+    await database.transaction(async (transaction) => {
+      const { application } = await lockOrCreateDraft(applicantId, transaction);
 
-    const url = buildFileUrl(file.filename);
-    const column = PHOTO_FIELD_TO_COLUMN[field];
-
-    if (!application) {
-      // Defense in depth — the dashboard gates this behind the NIN/VIN
-      // identity check client-side, but a direct API call must be stopped
-      // here too: no application row can be started for an applicant who
-      // hasn't verified.
-      const applicant = await User.findByPk(applicantId);
-      if (!applicant?.get("identityVerified")) {
-        fs.unlink(file.path, () => {});
-        throw errorUtilities.createError(
-          "Please verify your NIN and VIN before starting your application",
-          StatusCodes.FORBIDDEN,
-        );
+      if (field === "videoPitch" && application.get(columns.url as any)) {
+        throw errorUtilities.createError(VIDEO_LOCKED_ERROR, StatusCodes.CONFLICT);
       }
 
-      application = await Application.create({
-        applicantId,
-        status: ApplicationStatus.Draft,
-        [column]: url,
-      } as any);
-    } else {
-      await application.update({ [column]: url });
-    }
+      await application.update(
+        { [columns.url]: url, [columns.publicId]: publicId },
+        { transaction },
+      );
+    });
 
-    return responseUtilities.handleServicesResponse(
-      StatusCodes.OK,
-      "Photo uploaded",
-      {
-        field,
-        url,
-      },
-    );
+    return responseUtilities.handleServicesResponse(StatusCodes.OK, "Photo uploaded", {
+      field,
+      url,
+    });
   },
 );
 

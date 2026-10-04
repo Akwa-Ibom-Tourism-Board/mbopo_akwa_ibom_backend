@@ -18,7 +18,9 @@ const {
   EMAIL_FROM,
   VIN_PROVIDER_BASE_URL,
   VIN_PROVIDER_API_KEY,
-  UPLOADS_DIR,
+  CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET,
 } = process.env;
 
 export default merge(
@@ -29,7 +31,9 @@ export default merge(
     EMAIL_FROM,
     VIN_PROVIDER_BASE_URL,
     VIN_PROVIDER_API_KEY,
-    UPLOADS_DIR: UPLOADS_DIR || "./uploads",
+    CLOUDINARY_CLOUD_NAME,
+    CLOUDINARY_API_KEY,
+    CLOUDINARY_API_SECRET,
   },
   config,
 );

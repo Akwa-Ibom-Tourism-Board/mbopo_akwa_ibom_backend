@@ -30,10 +30,15 @@ export interface ApplicationAttributes {
   declarationAccuracy?: boolean | null;
   declarationTerms?: boolean | null;
   passportPhotoUrl?: string | null;
+  passportPhotoPublicId?: string | null;
   certificateOfOriginUrl?: string | null;
+  certificateOfOriginPublicId?: string | null;
   fullImageUrl?: string | null;
+  fullImagePublicId?: string | null;
   fullImageUrl2?: string | null;
+  fullImagePublicId2?: string | null;
   videoPitchUrl?: string | null;
+  videoPitchPublicId?: string | null;
   status: ApplicationStatus;
   referenceCode?: string | null;
   submittedAt?: Date | null;
@@ -101,10 +106,15 @@ Application.init(
     },
 
     passportPhotoUrl: { type: DataTypes.TEXT, allowNull: true },
+    passportPhotoPublicId: { type: DataTypes.TEXT, allowNull: true },
     certificateOfOriginUrl: { type: DataTypes.TEXT, allowNull: true },
+    certificateOfOriginPublicId: { type: DataTypes.TEXT, allowNull: true },
     fullImageUrl: { type: DataTypes.TEXT, allowNull: true },
+    fullImagePublicId: { type: DataTypes.TEXT, allowNull: true },
     fullImageUrl2: { type: DataTypes.TEXT, allowNull: true },
+    fullImagePublicId2: { type: DataTypes.TEXT, allowNull: true },
     videoPitchUrl: { type: DataTypes.TEXT, allowNull: true },
+    videoPitchPublicId: { type: DataTypes.TEXT, allowNull: true },
 
     status: {
       type: DataTypes.ENUM(...Object.values(ApplicationStatus)),
