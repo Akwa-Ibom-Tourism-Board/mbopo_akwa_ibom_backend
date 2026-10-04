@@ -15,7 +15,10 @@ const issueSession = async (user: User) => {
 
   await user.update({ refreshToken });
 
-  return { token, user: serializeUser(user) };
+  // Must be returned here, not just persisted on the row — authenticate.ts
+  // can only read a refresh token back from a request header, and the
+  // client can never populate that header with a value it was never given.
+  return { token, refreshToken, user: serializeUser(user) };
 };
 
 const loginService = errorUtilities.withServiceErrorHandling(

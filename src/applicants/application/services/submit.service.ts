@@ -22,7 +22,10 @@ const submitOnce = (applicantId: string, payload: Record<string, any>) =>
   database.transaction(async (transaction) => {
     // Row lock: concurrent photo saves / draft edits wait here, so the
     // data validated below is exactly the data that gets submitted.
-    const application = await findApplicationForUpdate(applicantId, transaction);
+    const application = await findApplicationForUpdate(
+      applicantId,
+      transaction,
+    );
 
     if (!application) {
       throw errorUtilities.createError(
@@ -97,7 +100,8 @@ const submitService = errorUtilities.withServiceErrorHandling(
           error instanceof UniqueConstraintError &&
           error.fields &&
           "referenceCode" in error.fields;
-        if (!isCodeCollision || attempt >= MAX_REFERENCE_CODE_ATTEMPTS) throw error;
+        if (!isCodeCollision || attempt >= MAX_REFERENCE_CODE_ATTEMPTS)
+          throw error;
       }
     }
 

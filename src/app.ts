@@ -20,7 +20,15 @@ app.disable("x-powered-by");
 app.use(helmet());
 app.use(compression());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+// Access-Control-Expose-Headers is required for authenticate.ts's silent
+// in-request token refresh to be usable at all — without it, the browser
+// receives x-access-token/x-refresh-token on a refreshed response but JS
+// can't read either one.
+app.use(
+  cors({
+    exposedHeaders: ["x-access-token", "x-refresh-token"],
+  }),
+);
 app.use(logger("dev"));
 app.use(express.json());
 app.use(cookieParser());

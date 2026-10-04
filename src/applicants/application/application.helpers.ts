@@ -16,14 +16,20 @@ export const UNVERIFIED_ERROR =
  * UPDATE), so concurrent edits / photo saves / submit serialize on the row
  * instead of acting on a stale read. Must run inside `transaction`.
  */
-export const findApplicationForUpdate = (applicantId: string, transaction: Transaction) =>
+export const findApplicationForUpdate = (
+  applicantId: string,
+  transaction: Transaction,
+) =>
   Application.findOne({
     where: { applicantId },
     transaction,
     lock: transaction.LOCK.UPDATE,
   });
 
-export const assertIdentityVerified = async (applicantId: string, transaction: Transaction) => {
+export const assertIdentityVerified = async (
+  applicantId: string,
+  transaction: Transaction,
+) => {
   const applicant = await User.findByPk(applicantId, { transaction });
   if (!applicant?.get("identityVerified")) {
     throw errorUtilities.createError(UNVERIFIED_ERROR, StatusCodes.FORBIDDEN);
@@ -65,7 +71,11 @@ export const lockOrCreateDraft = async (
      ON CONFLICT ("applicantId") DO NOTHING
      RETURNING "id"`,
     {
-      replacements: { id: uuid(), applicantId, status: ApplicationStatus.Draft },
+      replacements: {
+        id: uuid(),
+        applicantId,
+        status: ApplicationStatus.Draft,
+      },
       transaction,
     },
   );
