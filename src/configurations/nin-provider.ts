@@ -1,80 +1,50 @@
-import axios from "axios";
-import configurations from ".";
-import errorUtilities from "./error-handler";
-import { StatusCodes } from "./statusCodes";
+import { dvpPost } from "./dvp-client";
 
+/**
+ * Provider-neutral NIN result. Whatever vendor sits behind verifyNIN must
+ * map into this shape; nothing outside this file knows the vendor's fields.
+ */
 export interface NINVerificationResult {
   nin: string;
-  firstname: string;
-  lastname: string;
-  middlename: string;
+  firstName: string;
+  lastName: string;
+  middleName: string;
   phone: string;
   gender: string;
-  birthdate: string;
-  photo: string;
-  residence: {
-    address1: string;
-    town: string;
-    lga: string;
-    state: string;
-  };
+  /** Any format parseDateOfBirth() accepts (DVP: YYYY-MM-DD). */
+  dateOfBirth: string;
+}
+
+interface DvpNinRecord {
+  nin: string;
+  first_name: string;
+  middle_name?: string | null;
+  last_name: string;
+  mobile?: string | null;
+  gender: string;
+  date_of_birth: string;
 }
 
 /**
- * Calls the LumiID NIN-verification provider for a single NIN.
- * Throws a friendly, operational-style error (message + statusCode) on any
- * provider-side rejection (not found / invalid / unavailable). Returns the
- * raw LumiID shape — mapping into this project's internal identity shape
- * happens in the calling service, not here.
+ * Verifies a single NIN against the DVP (POST /identity/nin). Throws an
+ * operational error (message + statusCode) on not-found/invalid/unavailable.
  */
 const verifyNIN = async (nin: string): Promise<NINVerificationResult> => {
-  try {
-    const response = await axios.post(
-      `${configurations.LUMIID_BASE_URL}/v1/ng/nin-basic/`,
-      { nin },
-      {
-        headers: {
-          Authorization: `Bearer ${configurations.LUMIID_SECRET_KEY}`,
-          "Content-Type": "application/json",
-        },
-      },
-    );
+  const record = await dvpPost<DvpNinRecord>(
+    "/identity/nin",
+    { nin },
+    "NIN not found. Please ensure your 11-digit NIN is correct and try again.",
+  );
 
-    const data = response.data;
-
-    if (!data.success) {
-      throw errorUtilities.createError(
-        data.message || "NIN verification failed, check NIN and try again",
-        StatusCodes.BAD_REQUEST,
-      );
-    }
-
-    return data.data;
-  } catch (error: any) {
-    if (error.isOperational) {
-      throw error;
-    }
-
-    if (axios.isAxiosError(error) && error.response) {
-      const lumiidError = error.response.data;
-
-      const errorMessages: Record<string, string> = {
-        NIN_NOT_FOUND:
-          "NIN not found. Please ensure your 11-digit NIN is correct and try again.",
-        INVALID_NIN: "The NIN provided is invalid. Please check and try again.",
-        SERVICE_UNAVAILABLE:
-          "NIN verification service is temporarily unavailable. Please try again later.",
-      };
-
-      const friendlyMessage =
-        errorMessages[lumiidError?.code] ||
-        lumiidError?.message ||
-        "NIN verification failed. Please check your NIN and try again.";
-
-      throw errorUtilities.createError(friendlyMessage, StatusCodes.BAD_REQUEST);
-    }
-    throw error;
-  }
+  return {
+    nin: record.nin,
+    firstName: record.first_name,
+    lastName: record.last_name,
+    middleName: record.middle_name ?? "",
+    phone: record.mobile ?? "",
+    gender: record.gender,
+    dateOfBirth: record.date_of_birth,
+  };
 };
 
 export default verifyNIN;

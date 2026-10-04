@@ -1,28 +1,51 @@
-import errorUtilities from "./error-handler";
-import { StatusCodes } from "./statusCodes";
+import { dvpPost } from "./dvp-client";
 
 export interface VINVerificationResult {
   vin: string;
-  lga?: string;
-  ward?: string;
-  state?: string;
-  firstName?: string;
-  lastName?: string;
+  lga?: string | undefined;
+  ward?: string | undefined;
+  state?: string | undefined;
+  firstName?: string | undefined;
+  lastName?: string | undefined;
 }
 
+interface DvpVinRecord {
+  vin: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  unit?: {
+    ward?: string | null;
+    state?: string | null;
+    registration_area?: { name?: string | null; lga?: { name?: string | null } } | null;
+  } | null;
+}
+
+// INEC delimitation state code for Akwa Ibom. DVP returns the code ("03"),
+// not the name, and auth.helpers' isAkwaIbomIndigene() compares by name.
+const AKWA_IBOM_STATE_CODE = "03";
+
 /**
- * TODO: wire to a real VIN-verification provider once one is chosen.
- * Contract this function MUST satisfy once implemented:
- *   input:  a 19-character INEC Voter Identification Number
- *   output: { vin, lga, ward, state, firstName?, lastName? }
- * `state` (or `lga`, checked against AKWA_IBOM_LGAS) is what
- * auth.helpers's isAkwaIbomIndigene() uses — see §8 of BUILD_ME.md.
+ * Verifies a single VIN against the DVP (POST /identity/vin) and maps it to
+ * the neutral shape auth.helpers' isAkwaIbomIndigene() consumes.
  */
-const verifyVIN = async (_vin: string): Promise<VINVerificationResult> => {
-  throw errorUtilities.createError(
-    "VIN verification is not yet configured. Set VIN_PROVIDER_BASE_URL and VIN_PROVIDER_API_KEY once a provider is chosen.",
-    StatusCodes.SERVICE_UNAVAILABLE,
+const verifyVIN = async (vin: string): Promise<VINVerificationResult> => {
+  const record = await dvpPost<DvpVinRecord>(
+    "/identity/vin",
+    { vin },
+    "VIN not found. Please ensure your VIN is correct and try again.",
   );
+
+  const unit = record.unit;
+  const stateCode = unit?.state ?? undefined;
+
+  return {
+    vin: record.vin,
+    lga: unit?.registration_area?.lga?.name ?? undefined,
+    ward: unit?.registration_area?.name ?? unit?.ward ?? undefined,
+    state: stateCode === AKWA_IBOM_STATE_CODE ? "Akwa Ibom" : stateCode,
+    firstName: record.first_name ?? undefined,
+    lastName: record.last_name ?? undefined,
+  };
 };
 
 export default verifyVIN;
