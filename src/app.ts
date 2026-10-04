@@ -9,7 +9,6 @@ import rootRouter from "./routes";
 import config from "./configurations";
 import errorUtilities from "./configurations/error-handler";
 import { syncDatabases } from "./configurations/syncDb";
-import { UPLOADS_DIR } from "./configurations/upload";
 
 dotenv.config();
 
@@ -25,8 +24,6 @@ app.use(cors());
 app.use(logger("dev"));
 app.use(express.json());
 app.use(cookieParser());
-
-app.use("/uploads", express.static(UPLOADS_DIR));
 
 app.use("/api/v1", rootRouter);
 

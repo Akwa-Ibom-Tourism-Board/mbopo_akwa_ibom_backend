@@ -1,0 +1,83 @@
+import { Transaction } from "sequelize";
+import { v4 as uuid } from "uuid";
+import { database } from "../../configurations/database";
+import errorUtilities from "../../configurations/error-handler";
+import { StatusCodes } from "../../configurations/statusCodes";
+import { User } from "../../auth/User";
+import { Application, ApplicationStatus } from "./Application";
+
+export const SUBMITTED_ERROR =
+  "This application has already been submitted and can no longer be edited";
+export const UNVERIFIED_ERROR =
+  "Please verify your NIN and VIN before starting your application";
+
+/**
+ * Fetches the applicant's Application with a row lock (SELECT ... FOR
+ * UPDATE), so concurrent edits / photo saves / submit serialize on the row
+ * instead of acting on a stale read. Must run inside `transaction`.
+ */
+export const findApplicationForUpdate = (applicantId: string, transaction: Transaction) =>
+  Application.findOne({
+    where: { applicantId },
+    transaction,
+    lock: transaction.LOCK.UPDATE,
+  });
+
+export const assertIdentityVerified = async (applicantId: string, transaction: Transaction) => {
+  const applicant = await User.findByPk(applicantId, { transaction });
+  if (!applicant?.get("identityVerified")) {
+    throw errorUtilities.createError(UNVERIFIED_ERROR, StatusCodes.FORBIDDEN);
+  }
+};
+
+export const assertDraft = (application: Application) => {
+  if (application.get("status") !== ApplicationStatus.Draft) {
+    throw errorUtilities.createError(SUBMITTED_ERROR, StatusCodes.CONFLICT);
+  }
+};
+
+/**
+ * Returns the applicant's locked draft, creating it first if needed.
+ *
+ * Creation is `INSERT ... ON CONFLICT DO NOTHING` against the applicantId
+ * unique index, then a locking re-read: if two requests race to create, one
+ * inserts and the other silently no-ops, and both then queue on the same row
+ * lock. (A plain create() that throws on the unique violation would abort
+ * the surrounding Postgres transaction.)
+ */
+export const lockOrCreateDraft = async (
+  applicantId: string,
+  transaction: Transaction,
+): Promise<{ application: Application; created: boolean }> => {
+  let application = await findApplicationForUpdate(applicantId, transaction);
+  if (application) {
+    assertDraft(application);
+    return { application, created: false };
+  }
+
+  await assertIdentityVerified(applicantId, transaction);
+
+  // Raw statement because the model API can't report whether the insert
+  // actually happened (needed for the 201 vs 200 distinction).
+  const [insertedRows] = await database.query(
+    `INSERT INTO "Application" ("id", "applicantId", "status", "declarationIdentity", "declarationAccuracy", "declarationTerms", "createdAt", "updatedAt")
+     VALUES (:id, :applicantId, :status, false, false, false, NOW(), NOW())
+     ON CONFLICT ("applicantId") DO NOTHING
+     RETURNING "id"`,
+    {
+      replacements: { id: uuid(), applicantId, status: ApplicationStatus.Draft },
+      transaction,
+    },
+  );
+  const created = (insertedRows as unknown[]).length > 0;
+
+  application = await findApplicationForUpdate(applicantId, transaction);
+  if (!application) {
+    throw errorUtilities.createError(
+      "Could not start application, please retry",
+      StatusCodes.CONFLICT,
+    );
+  }
+  assertDraft(application);
+  return { application, created };
+};

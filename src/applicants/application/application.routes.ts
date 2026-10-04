@@ -2,7 +2,7 @@ import express from "express";
 import Joi from "joi";
 import validate from "../../configurations/validate";
 import authenticate from "../../configurations/authenticate";
-import upload from "../../configurations/upload";
+import { PHOTO_FIELDS } from "../../configurations/cloudinary";
 
 import saveDraft from "./controllers/save-draft";
 import getDraft from "./controllers/get-draft";
@@ -80,19 +80,21 @@ export const applicationSubmitSchema = Joi.object({
 
 const photoFieldSchema = Joi.object({
   field: Joi.string()
-    .valid(
-      "passportPhoto",
-      "certificateOfOrigin",
-      "fullImage",
-      "fullImage2",
-      "videoPitch",
-    )
+    .valid(...PHOTO_FIELDS)
     .required()
     .messages({
-      "any.only":
-        "field must be one of passportPhoto, certificateOfOrigin, fullImage, fullImage2, videoPitch",
+      "any.only": `field must be one of ${PHOTO_FIELDS.join(", ")}`,
       "any.required": "field is required",
     }),
+  url: Joi.string().trim().uri({ scheme: "https" }).max(2048).required().messages({
+    "any.required": "url is required",
+    "string.uri": "url must be a valid https URL",
+  }),
+  publicId: Joi.string().trim().max(512).required().messages({
+    "any.required": "publicId is required",
+  }),
+  // Accepted for future usage reporting; not persisted.
+  bytes: Joi.number().integer().min(0).optional(),
 });
 
 router.post("/draft", authenticate, validate(draftSchema), saveDraft);
@@ -101,7 +103,6 @@ router.patch("/draft", authenticate, validate(draftSchema), updateDraft);
 router.post(
   "/photo",
   authenticate,
-  upload.single("file"),
   validate(photoFieldSchema),
   uploadPhoto,
 );
