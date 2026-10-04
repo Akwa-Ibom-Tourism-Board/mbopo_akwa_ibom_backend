@@ -2,6 +2,7 @@ import errorUtilities from "../../configurations/error-handler";
 import responseUtilities from "../../configurations/response";
 import { StatusCodes } from "../../configurations/statusCodes";
 import { Notification } from "../Notification";
+import { invalidateUnreadCount } from "./unread-count.service";
 
 const markReadService = errorUtilities.withServiceErrorHandling(
   async (userId: string, notificationId: string) => {
@@ -13,6 +14,8 @@ const markReadService = errorUtilities.withServiceErrorHandling(
       { read: true },
       { where: { id: notificationId, userId } },
     );
+
+    invalidateUnreadCount(userId);
 
     if (affectedCount === 0) {
       throw errorUtilities.createError(

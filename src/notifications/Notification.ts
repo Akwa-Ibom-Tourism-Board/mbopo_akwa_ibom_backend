@@ -69,11 +69,13 @@ Notification.init(
     tableName: "Notification",
     timestamps: true,
     indexes: [
-      // Every read path filters by userId, most also by (userId, read) for
-      // the unread-count/unread-list queries — see §11 of BUILD_ME.md
-      // ("index every column used in a WHERE").
-      { fields: ["userId"] },
+      // (userId, read) serves the unread-count query; (userId, createdAt)
+      // serves the paginated list (filter + sort) and the retention purge.
+      // Both lead with userId, so a separate userId index is redundant.
       { fields: ["userId", "read"] },
+      { fields: ["userId", "createdAt"] },
+      // Retention purge scans by age across all users.
+      { fields: ["createdAt"] },
     ],
   },
 );

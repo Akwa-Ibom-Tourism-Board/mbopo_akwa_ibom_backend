@@ -1,4 +1,5 @@
 import { Notification, NotificationType } from "../Notification";
+import { invalidateUnreadCount } from "./unread-count.service";
 
 export interface CreateNotificationInput {
   userId: string;
@@ -29,6 +30,7 @@ export const createNotification = async (
       type: input.type ?? NotificationType.System,
       read: false,
     } as any);
+    invalidateUnreadCount(input.userId);
   } catch (error: any) {
     console.error("Failed to create notification:", error.message);
   }
