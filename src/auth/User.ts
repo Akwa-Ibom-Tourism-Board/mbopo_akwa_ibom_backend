@@ -27,6 +27,7 @@ export interface UserAttributes {
   localGovernment?: string | null;
   ward?: string | null;
   avatarUrl?: string | null;
+  avatarPublicId?: string | null;
   emailVerified: boolean;
   emailOtpHash?: string | null;
   emailOtpExpiresAt?: Date | null;
@@ -162,6 +163,12 @@ User.init(
     },
 
     avatarUrl: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+
+    // Cloudinary public_id backing avatarUrl — see configurations/cloudinary.ts.
+    avatarPublicId: {
       type: DataTypes.TEXT,
       allowNull: true,
     },

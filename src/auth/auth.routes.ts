@@ -2,7 +2,6 @@ import express from "express";
 import Joi from "joi";
 import validate from "../configurations/validate";
 import authenticate from "../configurations/authenticate";
-import upload from "../configurations/upload";
 import { limiter, otpResendLimiter } from "../configurations/rate-limit";
 import { NIGERIAN_PHONE_REGEX } from "../configurations/constants";
 
@@ -87,6 +86,17 @@ const updateMeSchema = Joi.object({
   lastName: Joi.string().trim().min(1).max(100).optional(),
   phoneNumber: phoneSchema.optional(),
 });
+const avatarSchema = Joi.object({
+  url: Joi.string().trim().uri({ scheme: "https" }).max(2048).required().messages({
+    "any.required": "url is required",
+    "string.uri": "url must be a valid https URL",
+  }),
+  publicId: Joi.string().trim().max(512).required().messages({
+    "any.required": "publicId is required",
+  }),
+  // Accepted for future usage reporting; not persisted.
+  bytes: Joi.number().integer().min(0).optional(),
+});
 const changePasswordSchema = Joi.object({
   currentPassword: Joi.string().required().messages({ "any.required": "Current password is required" }),
   newPassword: passwordSchema,
@@ -109,7 +119,7 @@ router.post("/forgot-password", limiter, validate(forgotPasswordSchema), forgotP
 router.post("/reset-password", limiter, validate(resetPasswordSchema), resetPassword);
 router.get("/me", authenticate, me);
 router.patch("/me", authenticate, validate(updateMeSchema), updateMe);
-router.post("/avatar", authenticate, upload.single("avatar"), uploadAvatar);
+router.post("/avatar", authenticate, validate(avatarSchema), uploadAvatar);
 router.post("/change-password", authenticate, validate(changePasswordSchema), changePassword);
 router.post("/logout", authenticate, logout);
 
