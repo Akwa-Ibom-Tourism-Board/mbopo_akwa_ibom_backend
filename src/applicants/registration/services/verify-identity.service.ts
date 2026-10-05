@@ -3,7 +3,7 @@ import errorUtilities from "../../../configurations/error-handler";
 import responseUtilities from "../../../configurations/response";
 import { StatusCodes } from "../../../configurations/statusCodes";
 import verifyNIN, { NINVerificationResult } from "../../../configurations/nin-provider";
-import { copyNinPhotoToAvatar } from "../../../configurations/cloudinary";
+import { uploadSelfieToAvatar } from "../../../configurations/cloudinary";
 import { SELFIE_MISMATCH_CODE, SELFIE_MISMATCH_MESSAGE } from "../../../configurations/dvp-client";
 import { User, Gender } from "../../../auth/User";
 import {
@@ -42,7 +42,7 @@ const evaluateEligibility = (ninResult: NINVerificationResult, dateOfBirth: stri
 };
 
 // The single NIN-verification-and-commit step: NIN record + live selfie
-// face-match, then identity (and the NIN photo as a locked avatar) is
+// face-match, then identity (and the selfie itself, as a locked avatar) is
 // attached to the logged-in account. Never re-runnable once
 // `identityVerified` is true. Nothing is persisted unless every check passes.
 const verifyIdentityService = errorUtilities.withServiceErrorHandling(
@@ -110,13 +110,9 @@ const verifyIdentityService = errorUtilities.withServiceErrorHandling(
 
     // Before the DB write, so a Cloudinary failure can never leave
     // identityVerified = true with no photo. Overwrites in place on retry.
-    if (!ninResult.photoUrl) {
-      throw errorUtilities.createError(
-        "Your NIN record has no photo on file. Please contact support.",
-        StatusCodes.BAD_REQUEST,
-      );
-    }
-    const avatar = await copyNinPhotoToAvatar(userId, ninResult.photoUrl);
+    // Deliberately the applicant's own live selfie, not the NIN record's
+    // photo — no dependency on the NIN record actually having one on file.
+    const avatar = await uploadSelfieToAvatar(userId, payload.image);
 
     try {
       // Conditional update: "one-time" is a database guarantee, so two

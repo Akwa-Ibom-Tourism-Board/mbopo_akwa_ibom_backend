@@ -3,6 +3,9 @@ const {
   DATABASE_URL,
   REDIS_URL,
   FRONTEND_URL,
+  CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET,
 } = process.env;
 
 console.log("Running in production mode");
@@ -12,4 +15,7 @@ export default {
   DATABASE_URL,
   REDIS_URL,
   FRONTEND_URL,
+  CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET,
 };

@@ -25,9 +25,6 @@ const {
   DVP_SECRET_KEY,
   DVP_PROGRAM_ID,
   MESSAGES_NOTIFY_EMAIL,
-  CLOUDINARY_CLOUD_NAME,
-  CLOUDINARY_API_KEY,
-  CLOUDINARY_API_SECRET,
 } = process.env;
 
 export default merge(
@@ -45,9 +42,6 @@ export default merge(
     DVP_SECRET_KEY,
     DVP_PROGRAM_ID,
     MESSAGES_NOTIFY_EMAIL,
-    CLOUDINARY_CLOUD_NAME,
-    CLOUDINARY_API_KEY,
-    CLOUDINARY_API_SECRET,
   },
   config,
 );

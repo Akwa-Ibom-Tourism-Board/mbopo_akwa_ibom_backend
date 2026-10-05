@@ -1,4 +1,3 @@
-import axios from "axios";
 import { v2 as cloudinary } from "cloudinary";
 import config from ".";
 import errorUtilities from "./error-handler";
@@ -157,58 +156,40 @@ export function assertValidUploadReference(
   }
 }
 
-const NIN_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
-const NIN_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-
-// Registrable domain (last two labels), so a DVP photo served from a
-// sibling subdomain still passes while arbitrary hosts don't.
-const registrableDomain = (hostname: string) => hostname.split(".").slice(-2).join(".");
+// Matches the route's own Joi cap on the incoming `image` field — a
+// defense-in-depth repeat of that check, not the only place it's enforced.
+const SELFIE_DATA_URI_MAX_LENGTH = 1_400_000;
+const SELFIE_DATA_URI_PATTERN = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$/;
 
 /**
- * Copies the NIN record's photo from the DVP onto Cloudinary as the user's
+ * Uploads the applicant's own live-capture selfie — already in hand as a
+ * base64 data URI, no network fetch needed — to Cloudinary as their
  * permanent avatar, at the deterministic avatar public_id (so a retry
- * overwrites in place). The URL comes from a third party, so it's only
- * fetched over https from the DVP's own domain, with no redirects, a size
- * cap and a content-type check.
+ * overwrites in place). This is deliberately the selfie itself, not the
+ * NIN record's own photo: it's what the applicant actually looks like
+ * right now, captured at verification time, not however old/low-quality
+ * their official ID photo happens to be.
  */
-export async function copyNinPhotoToAvatar(
+export async function uploadSelfieToAvatar(
   userId: string,
-  photoUrl: string,
+  selfieDataUri: string,
 ): Promise<{ url: string; publicId: string }> {
   const { cloudName, apiKey, apiSecret } = requireCredentials();
   const failed = (message: string) =>
     errorUtilities.createError(message, StatusCodes.BAD_GATEWAY);
 
-  let parsed: URL;
-  try {
-    parsed = new URL(photoUrl);
-    const dvpHost = new URL(config.DVP_BASE_URL as string).hostname;
-    if (
-      parsed.protocol !== "https:" ||
-      registrableDomain(parsed.hostname) !== registrableDomain(dvpHost)
-    ) {
-      throw new Error("untrusted host");
-    }
-  } catch {
-    console.error("NIN photo URL rejected:", photoUrl);
-    throw failed("Could not save your verified photo. Please try again.");
+  if (
+    selfieDataUri.length > SELFIE_DATA_URI_MAX_LENGTH ||
+    !SELFIE_DATA_URI_PATTERN.test(selfieDataUri)
+  ) {
+    throw failed("Could not save your photo. Please retake it and try again.");
   }
 
   try {
-    const download = await axios.get<ArrayBuffer>(parsed.toString(), {
-      responseType: "arraybuffer",
-      timeout: 15_000,
-      maxRedirects: 0,
-      maxContentLength: NIN_PHOTO_MAX_BYTES,
-    });
-    const contentType = String(download.headers["content-type"] ?? "").split(";")[0]!.trim();
-    if (!NIN_PHOTO_TYPES.has(contentType)) throw new Error(`unexpected type ${contentType}`);
-
     cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret, secure: true });
     const publicId = buildPublicId(userId, "avatar");
-    const dataUri = `data:${contentType};base64,${Buffer.from(download.data).toString("base64")}`;
 
-    const uploaded = await cloudinary.uploader.upload(dataUri, {
+    const uploaded = await cloudinary.uploader.upload(selfieDataUri, {
       public_id: publicId,
       overwrite: true,
       invalidate: true,
@@ -219,7 +200,7 @@ export async function copyNinPhotoToAvatar(
 
     return { url: uploaded.secure_url, publicId: uploaded.public_id };
   } catch (error: any) {
-    console.error("NIN photo copy failed:", error.message);
-    throw failed("Could not save your verified photo. Please try again.");
+    console.error("Selfie avatar upload failed:", error.message);
+    throw failed("Could not save your photo. Please retake it and try again.");
   }
 }
