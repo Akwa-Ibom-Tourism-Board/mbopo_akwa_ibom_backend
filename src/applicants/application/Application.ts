@@ -21,7 +21,12 @@ export interface ApplicationAttributes {
   address?: string | null;
   education?: string | null;
   institution?: string | null;
+  // Free text, only meaningful (and required at submit) when institution/
+  // occupation is literally "Other" — see applicationSubmitSchema's
+  // .when() rules in application.routes.ts.
+  institutionOther?: string | null;
   occupation?: string | null;
+  occupationOther?: string | null;
   talents?: string | null;
   languages?: string | null;
   initiative?: string | null;
@@ -85,7 +90,9 @@ Application.init(
     address: { type: DataTypes.TEXT, allowNull: true },
     education: { type: DataTypes.STRING, allowNull: true },
     institution: { type: DataTypes.STRING, allowNull: true },
+    institutionOther: { type: DataTypes.STRING(150), allowNull: true },
     occupation: { type: DataTypes.STRING, allowNull: true },
+    occupationOther: { type: DataTypes.STRING(100), allowNull: true },
     talents: { type: DataTypes.TEXT, allowNull: true },
     languages: { type: DataTypes.STRING, allowNull: true },
     initiative: { type: DataTypes.TEXT, allowNull: true },

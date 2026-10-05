@@ -33,7 +33,12 @@ const draftFieldSchema = {
   address: Joi.string().trim().max(500).allow("", null).optional(),
   education: Joi.string().trim().max(150).allow("", null).optional(),
   institution: Joi.string().trim().max(200).allow("", null).optional(),
+  // Only meaningful when institution/occupation is literally "Other" —
+  // enforced as required in applicationSubmitSchema below, via .when();
+  // a draft just stores whatever's there, same as any other free text.
+  institutionOther: Joi.string().trim().max(150).allow("", null).optional(),
   occupation: Joi.string().trim().max(150).allow("", null).optional(),
+  occupationOther: Joi.string().trim().max(100).allow("", null).optional(),
   talents: Joi.string().trim().max(1000).allow("", null).optional(),
   languages: Joi.string().trim().max(300).allow("", null).optional(),
   initiative: Joi.string().trim().max(2000).allow("", null).optional(),
@@ -71,6 +76,16 @@ export const applicationSubmitSchema = Joi.object({
   address: Joi.string().trim().required(),
   education: Joi.string().trim().required(),
   occupation: Joi.string().trim().required(),
+  // Required only when the paired dropdown is "Other" — mirrors the
+  // frontend's own cross-field zod .refine() in schema.ts.
+  occupationOther: Joi.string().trim().max(100).allow("", null).optional().when("occupation", {
+    is: "Other",
+    then: Joi.string().trim().min(1).required(),
+  }),
+  institutionOther: Joi.string().trim().max(150).allow("", null).optional().when("institution", {
+    is: "Other",
+    then: Joi.string().trim().min(1).required(),
+  }),
   talents: Joi.string().trim().required(),
   languages: Joi.string().trim().required(),
   why: Joi.string().trim().required(),

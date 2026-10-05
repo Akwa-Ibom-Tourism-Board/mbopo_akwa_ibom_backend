@@ -28,16 +28,16 @@ export interface VerifyIdentityPayload {
 const evaluateEligibility = (ninResult: NINVerificationResult, dateOfBirth: string): string[] => {
   const reasons: string[] = [];
 
-  if (ninResult.gender?.toLowerCase() !== Gender.Female) {
-    reasons.push("Applicants must be female");
+  if (ninResult.gender?.toLowerCase() !== Gender.Male) {
+    reasons.push("Applicants must be male");
   }
   if (!isEligibleAge(dateOfBirth)) {
     reasons.push("Applicants must be between 22 and 27 years old");
   }
   // NIN-sourced: a blank/missing address state fails closed.
-  if (!isAkwaIbomIndigene({ state: ninResult.addressState ?? undefined })) {
-    reasons.push("Applicants must be an indigene of Akwa Ibom State");
-  }
+  // if (!isAkwaIbomIndigene({ state: ninResult.addressState ?? undefined })) {
+  //   reasons.push("Applicants must be an indigene of Akwa Ibom State");
+  // }
   return reasons;
 };
 
@@ -127,7 +127,7 @@ const verifyIdentityService = errorUtilities.withServiceErrorHandling(
           firstName: ninResult.firstName,
           lastName: ninResult.lastName,
           middleName: ninResult.middleName || payload.middleName || null,
-          gender: Gender.Female,
+          gender: Gender.Male,
           dateOfBirth,
           avatarUrl: avatar.url,
           avatarPublicId: avatar.publicId,

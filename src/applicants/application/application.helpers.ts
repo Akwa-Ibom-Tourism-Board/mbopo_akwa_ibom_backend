@@ -13,6 +13,13 @@ export function toSentenceCase(value: string): string {
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
 }
 
+// occupation/institution are deliberately excluded: both are dropdown
+// values that must match a fixed option list exactly (e.g. "Entrepreneur /
+// Business Owner", "University of Uyo") -- sentence-casing them produces a
+// still-plausible-looking string ("Entrepreneur / business owner") that no
+// longer matches anything in the frontend's whitelist, so a resumed draft
+// fails validation on a value that looks fine on screen. Free-text fields
+// don't have this problem since they're not validated against a fixed list.
 const SENTENCE_CASE_FIELDS = [
   "middleName",
   "nextOfKin",
@@ -23,8 +30,8 @@ const SENTENCE_CASE_FIELDS = [
   "languages",
   "initiative",
   "why",
-  "occupation",
-  "institution",
+  "occupationOther",
+  "institutionOther",
 ] as const;
 
 /**

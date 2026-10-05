@@ -171,7 +171,11 @@ User.init(
 
     // Must default to NULL (not false) so "hasn't submitted yet" is
     // distinguishable from "VIN check failed".
-    isVinVerified: { type: DataTypes.BOOLEAN, allowNull: true, defaultValue: null },
+    isVinVerified: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: null,
+    },
     vinVerificationFailedReason: { type: DataTypes.TEXT, allowNull: true },
 
     avatarUrl: {
