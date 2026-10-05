@@ -1,20 +1,39 @@
 import Queue from "bull";
 import configurations from ".";
-import { sendEmail, EmailPayload } from "./email-sender";
+import { sendEmail, warmUpEmailTransport, EmailPayload } from "./email-sender";
 
-// Every email waits this long in the queue before it is sent.
+// Every email is enqueued immediately but not sent until this long after.
 const EMAIL_SEND_DELAY_MS = 5_000;
+// Several emails may be sent at once, so one slow send never holds the rest.
+const EMAIL_WORKER_CONCURRENCY = 5;
 
 if (!configurations.REDIS_URL) {
   console.error("❌ REDIS_URL is not set — queued emails will never be delivered");
 }
 
-const emailQueue = new Queue("email queue", configurations.REDIS_URL!);
+const emailQueue = new Queue("email queue", configurations.REDIS_URL!, {
+  settings: {
+    // Bull promotes delayed jobs with a timer and falls back to polling at
+    // this interval (default 5s). Polling every second keeps a "5 second"
+    // delay from stretching to ~10s when the timer is missed.
+    guardInterval: 1_000,
+  },
+});
 
 // Without these, a bad Redis URL fails silently and emails just vanish.
 emailQueue.on("error", (error) => console.error("Email queue error:", error.message));
-emailQueue.on("ready", () => console.log("📬 Email queue connected to Redis"));
+emailQueue.on("ready", () => {
+  console.log("📬 Email queue connected to Redis");
+  // Open the SMTP connection now so the first email doesn't pay for the
+  // TLS handshake and login on top of its delay.
+  warmUpEmailTransport().catch((error) =>
+    console.error("Email transport warm-up failed:", error.message),
+  );
+});
 
+// Returns as soon as the job is handed to Redis — callers never wait for
+// the delay or the send, and an enqueue failure is logged, not thrown, so it
+// can't fail the request that triggered the email.
 export const queueEmail = async (payload: EmailPayload): Promise<void> => {
   emailQueue
     .add("sendEmail", payload, {
@@ -33,7 +52,7 @@ export const queueEmail = async (payload: EmailPayload): Promise<void> => {
     });
 };
 
-emailQueue.process("sendEmail", async (job) => {
+emailQueue.process("sendEmail", EMAIL_WORKER_CONCURRENCY, async (job) => {
   await sendEmail(job.data);
 });
 

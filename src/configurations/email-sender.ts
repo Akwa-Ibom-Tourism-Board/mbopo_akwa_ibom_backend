@@ -23,6 +23,7 @@ type Provider = {
 
 const buildGmail = (): Provider => ({
   transport: nodemailer.createTransport({
+    pool: true,
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
@@ -41,6 +42,7 @@ const buildGmail = (): Provider => ({
 // Mail token from the agent's SMTP tab.
 const buildZeptoMail = (): Provider => ({
   transport: nodemailer.createTransport({
+    pool: true,
     host: configurations.ZEPTOMAIL_HOST || "smtp.zeptomail.com",
     port: 587,
     secure: false,
@@ -52,6 +54,9 @@ const buildZeptoMail = (): Provider => ({
   from: `Mbopo Akwa Ibom <${configurations.EMAIL_FROM}>`,
 });
 
+// Pooled transports keep the SMTP connection open between emails, so each
+// send skips the connect + TLS + auth round trips.
+
 // Lazy, so a missing credential fails the send (and gets retried/logged)
 // rather than crashing the process at import time.
 let provider: Provider | undefined;
@@ -61,6 +66,11 @@ const getProvider = (): Provider => {
       configurations.EMAIL_PROVIDER === "zeptomail" ? buildZeptoMail() : buildGmail();
   }
   return provider;
+};
+
+/** Opens the pooled SMTP connection ahead of the first send. */
+export const warmUpEmailTransport = async (): Promise<void> => {
+  await getProvider().transport.verify();
 };
 
 export const sendEmail = async (payload: EmailPayload): Promise<void> => {
