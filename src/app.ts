@@ -28,37 +28,34 @@ app.use(compression());
 // in-request token refresh to be usable at all — without it, the browser
 // receives x-access-token/x-refresh-token on a refreshed response but JS
 // can't read either one.
-// Only the configured frontend origin(s) may call the API from a browser.
-// Origins come from FRONTEND_URL and, optionally, CORS_ORIGINS (both may hold
-// several comma-separated values). Each entry is reduced to its bare origin,
-// so a trailing slash or path in the env var can't make it silently miss.
-// If nothing is configured we warn and stay open rather than lock everyone out.
-const toOrigin = (value: string): string | null => {
-  try {
-    return new URL(value.trim()).origin;
-  } catch {
-    return null;
-  }
-};
-const allowedOrigins = []
-  .flatMap((value) => (value || "").split(","))
-  .map(toOrigin)
-  .filter((origin): origin is string => Boolean(origin));
-if (allowedOrigins.length === 0) {
-  console.warn("⚠️  FRONTEND_URL is not set — CORS is open to every origin");
-} else {
-  console.log("CORS allowed origins:", allowedOrigins.join(", "));
-}
+// TODO: restrict CORS to the frontend origin(s) before launch. For now the
+// API is open to every origin. The allow-list below is disabled, not removed:
+// uncomment it and the `origin` option to restore it. Origins come from
+// FRONTEND_URL and optionally CORS_ORIGINS (comma-separated); each entry is
+// reduced to its bare origin so a trailing slash or path can't miss.
+//
+// const toOrigin = (value: string): string | null => {
+//   try {
+//     return new URL(value.trim()).origin;
+//   } catch {
+//     return null;
+//   }
+// };
+// const allowedOrigins = [config.FRONTEND_URL, process.env.CORS_ORIGINS]
+//   .flatMap((value) => (value || "").split(","))
+//   .map(toOrigin)
+//   .filter((origin): origin is string => Boolean(origin));
+// console.log("CORS allowed origins:", allowedOrigins.join(", "));
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // No Origin header = not a browser request (curl, server-to-server).
-      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      console.warn(`CORS blocked origin: ${origin}`);
-      return callback(null, false);
-    },
+    // origin: (origin, callback) => {
+    //   // No Origin header = not a browser request (curl, server-to-server).
+    //   if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+    //     return callback(null, true);
+    //   }
+    //   console.warn(`CORS blocked origin: ${origin}`);
+    //   return callback(null, false);
+    // },
     exposedHeaders: ["x-access-token", "x-refresh-token"],
   }),
 );
