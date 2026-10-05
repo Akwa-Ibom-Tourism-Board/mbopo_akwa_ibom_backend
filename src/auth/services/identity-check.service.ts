@@ -11,6 +11,7 @@ import {
   isAkwaIbomIndigene,
 } from "../auth.helpers";
 import { Gender } from "../User";
+import { namesMatch } from "../name-match";
 
 export interface VerifiedIdentity {
   nin: string;
@@ -32,6 +33,7 @@ export interface EligibilityCheckResult {
 interface CacheEntry {
   identity: VerifiedIdentity;
   vinResult: VINVerificationResult;
+  sameName: boolean;
   expiresAt: number;
 }
 
@@ -54,10 +56,15 @@ const lookupIdentity = async (
 ): Promise<{
   identity: VerifiedIdentity;
   vinResult: VINVerificationResult;
+  sameName: boolean;
 }> => {
   const cached = identityCache.get(cacheKey(nin, vin));
   if (cached && cached.expiresAt > Date.now()) {
-    return { identity: cached.identity, vinResult: cached.vinResult };
+    return {
+      identity: cached.identity,
+      vinResult: cached.vinResult,
+      sameName: cached.sameName,
+    };
   }
 
   const [ninResult, vinResult] = await Promise.all([
@@ -87,13 +94,25 @@ const lookupIdentity = async (
     ward: vinResult.ward || "",
   };
 
+  // Guards against pairing one person's NIN with someone else's VIN. Both
+  // lookups already return names, so this costs no extra provider call.
+  const sameName = namesMatch(
+    {
+      firstName: ninResult.firstName,
+      middleName: ninResult.middleName,
+      lastName: ninResult.lastName,
+    },
+    { firstName: vinResult.firstName, lastName: vinResult.lastName },
+  );
+
   identityCache.set(cacheKey(nin, vin), {
     identity,
     vinResult,
+    sameName,
     expiresAt: Date.now() + IDENTITY_CACHE_TTL_MS,
   });
 
-  return { identity, vinResult };
+  return { identity, vinResult, sameName };
 };
 
 /**
@@ -107,10 +126,13 @@ export const verifyAndEvaluateEligibility = async (
   nin: string,
   vin: string,
 ): Promise<EligibilityCheckResult> => {
-  const { identity, vinResult } = await lookupIdentity(nin, vin);
+  const { identity, vinResult, sameName } = await lookupIdentity(nin, vin);
 
   const reasons: string[] = [];
 
+  if (!sameName) {
+    reasons.push("The NIN and VIN provided do not appear to belong to the same person");
+  }
   if (identity.gender !== Gender.Female) {
     reasons.push("Applicants must be female");
   }

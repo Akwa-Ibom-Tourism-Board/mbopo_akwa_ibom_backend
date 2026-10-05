@@ -17,7 +17,8 @@ const changePasswordService = errorUtilities.withServiceErrorHandling(
       throw errorUtilities.createError("Current password is incorrect", StatusCodes.BAD_REQUEST);
     }
 
-    await user.update({ password: await hashData(newPassword) });
+    // Revoke the refresh token so other sessions must log in again.
+    await user.update({ password: await hashData(newPassword), refreshToken: null });
 
     return responseUtilities.handleServicesResponse(StatusCodes.OK, "Password changed successfully");
   },

@@ -15,3 +15,13 @@ export const otpResendLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Blanket ceiling for every API route; the stricter limiters above stack on
+// top of it for sensitive endpoints.
+export const generalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  message: "Too many requests, please try again later",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
