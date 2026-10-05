@@ -1,28 +1,4 @@
-import nodemailer from "nodemailer";
-import configurations from ".";
-
-const transport = nodemailer.createTransport({
-  host: "smtp.sendgrid.net",
-  port: 2525,
-  secure: false,
-  auth: {
-    user: "apikey",
-    pass: configurations.SENDGRID_API_KEY!,
-  },
-});
-
-export const sendEmail = async (payload: {
-  to: string;
-  subject: string;
-  htmlBody: string;
-}): Promise<void> => {
-  await transport.sendMail({
-    from: `Mbopo Akwa Ibom <${configurations.EMAIL_FROM}>`,
-    to: payload.to,
-    subject: payload.subject,
-    html: payload.htmlBody,
-  });
-};
+// HTML templating only. Delivery lives in email-sender.ts.
 
 /**
  * Wraps a message (and optional action button) in the branded email shell
@@ -134,7 +110,7 @@ export const wrapEmailHtml = (
                 "
               >
                 <p style="font-size: 12px; opacity: 0.7; margin-top: 20px; color: #78716e;">
-                  &copy; ${new Date().getFullYear()} Akwa Ibom State Tourism Board. All rights reserved.
+                  &copy; ${new Date().getFullYear()} Akwa Ibom State Hotels and Tourism Development Commission. All rights reserved.
                 </p>
               </td>
             </tr>
@@ -147,6 +123,5 @@ export const wrapEmailHtml = (
 };
 
 export default {
-  sendEmail,
   wrapEmailHtml,
 };

@@ -30,8 +30,9 @@ const validate = (schema: Joi.Schema) => {
       abortEarly: false,
       stripUnknown: true,
     });
-
+    
     if (error) {
+      console.log('checking', error)
       return respondWithErrors(response, error);
     }
 
