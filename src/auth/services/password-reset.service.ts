@@ -45,11 +45,21 @@ export const resetPasswordService = errorUtilities.withServiceErrorHandling(
       throw errorUtilities.createError("Reset token has expired", StatusCodes.GONE);
     }
 
-    await user.update({
-      password: await hashData(password),
-      passwordResetTokenHash: null,
-      passwordResetExpiresAt: null,
-    });
+    // Consume the token atomically (WHERE hash still matches) so two
+    // concurrent resets with one link can't both succeed, and revoke any
+    // existing session.
+    const [consumed] = await User.update(
+      {
+        password: await hashData(password),
+        passwordResetTokenHash: null,
+        passwordResetExpiresAt: null,
+        refreshToken: null,
+      },
+      { where: { id: user.get("id") as string, passwordResetTokenHash: hashToken(token) } },
+    );
+    if (consumed === 0) {
+      throw errorUtilities.createError("Invalid or expired reset token", StatusCodes.BAD_REQUEST);
+    }
 
     return responseUtilities.handleServicesResponse(StatusCodes.OK, "Password reset successfully");
   },

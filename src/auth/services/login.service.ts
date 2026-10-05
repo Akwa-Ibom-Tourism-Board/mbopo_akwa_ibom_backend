@@ -2,18 +2,25 @@ import errorUtilities from "../../configurations/error-handler";
 import responseUtilities from "../../configurations/response";
 import { StatusCodes } from "../../configurations/statusCodes";
 import jwtUtilities, { TokenDuration } from "../../configurations/jwt";
+import bcrypt from "bcryptjs";
 import { User } from "../User";
-import { compareHash, serializeUser } from "../auth.helpers";
+import { compareHash, hashToken, serializeUser } from "../auth.helpers";
+
+// Compared against when the email is unknown, so a miss costs the same
+// bcrypt time as a hit and response timing can't reveal which emails exist.
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync("unused-placeholder-password", 10);
 
 // Kept minimal — just `{ id }` — so `authenticate` never needs a DB read to
 // know who's asking, only when a refresh actually happens. See BUILD_ME.md §11.
 const issueSession = async (user: User) => {
-  const tokenPayload = { id: user.get("id") as string };
+  const id = user.get("id") as string;
 
-  const token = jwtUtilities.signToken(tokenPayload, TokenDuration.accessTokenDuration);
-  const refreshToken = jwtUtilities.signToken(tokenPayload, TokenDuration.refreshTokenDuration);
+  const token = jwtUtilities.signToken({ id, typ: "access" }, TokenDuration.accessTokenDuration);
+  const refreshToken = jwtUtilities.signToken({ id, typ: "refresh" }, TokenDuration.refreshTokenDuration);
 
-  await user.update({ refreshToken });
+  // Only a hash is stored: a leaked database dump can't be replayed as
+  // live sessions.
+  await user.update({ refreshToken: hashToken(refreshToken) });
 
   // Must be returned here, not just persisted on the row — authenticate.ts
   // can only read a refresh token back from a request header, and the
@@ -25,12 +32,11 @@ const loginService = errorUtilities.withServiceErrorHandling(
   async (email: string, password: string) => {
     const user = await User.findOne({ where: { email: email.trim().toLowerCase() } });
 
-    if (!user) {
-      throw errorUtilities.createError("Invalid email or password", StatusCodes.BAD_REQUEST);
-    }
-
-    const isValid = await compareHash(password, user.get("password") as string);
-    if (!isValid) {
+    const isValid = await compareHash(
+      password,
+      user ? (user.get("password") as string) : DUMMY_PASSWORD_HASH,
+    );
+    if (!user || !isValid) {
       throw errorUtilities.createError("Invalid email or password", StatusCodes.BAD_REQUEST);
     }
 

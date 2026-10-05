@@ -14,6 +14,7 @@ if (stage === "development") {
 
 const {
   APP_SECRET,
+  CAPTCHA_SECRET_KEY,
   EMAIL_PROVIDER,
   SMTP_GMAIL_USER,
   SMTP_GMAIL_PASSWORD,
@@ -33,6 +34,7 @@ export default merge(
   {
     stage,
     APP_SECRET,
+    CAPTCHA_SECRET_KEY,
     EMAIL_PROVIDER,
     SMTP_GMAIL_USER,
     SMTP_GMAIL_PASSWORD,

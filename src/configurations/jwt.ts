@@ -1,8 +1,11 @@
 import jwt from "jsonwebtoken";
 import configurations from ".";
 
+export type TokenType = "access" | "refresh";
+
 export interface TokenPayload {
   id: string;
+  typ?: TokenType;
   [key: string]: any;
 }
 
@@ -22,11 +25,23 @@ const signToken = (
   payload: TokenPayload,
   expiresIn: string | number = TokenDuration.accessTokenDuration,
 ): string => {
-  return jwt.sign(payload, getSecret(), { expiresIn: expiresIn as any });
+  return jwt.sign(payload, getSecret(), { expiresIn: expiresIn as any, algorithm: "HS256" });
 };
 
-const verifyToken = <T extends object = TokenPayload>(token: string): T => {
-  return jwt.verify(token, getSecret()) as T;
+/**
+ * Pins the algorithm (no "none"/alg-confusion) and — when `expectedType` is
+ * given — rejects a token minted for another purpose, so a long-lived
+ * refresh token can never be replayed as an access token.
+ */
+const verifyToken = <T extends object = TokenPayload>(
+  token: string,
+  expectedType?: TokenType,
+): T => {
+  const payload = jwt.verify(token, getSecret(), { algorithms: ["HS256"] }) as TokenPayload;
+  if (expectedType && payload.typ !== expectedType) {
+    throw new Error("Invalid token type");
+  }
+  return payload as unknown as T;
 };
 
 export default {

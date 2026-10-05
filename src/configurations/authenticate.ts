@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwtUtilities, { TokenDuration, TokenPayload } from "./jwt";
 import { User } from "../auth/User";
+import { hashToken } from "../auth/auth.helpers";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -37,12 +38,12 @@ const authenticate = async (
 
     let verifiedUser: TokenPayload;
     try {
-      verifiedUser = jwtUtilities.verifyToken(authorizationToken);
+      verifiedUser = jwtUtilities.verifyToken(authorizationToken, "access");
     } catch (error: any) {
       if (error.message !== "jwt expired") {
         return response.status(401).json({
           status: "error",
-          message: `Login Again, Invalid Token: ${error.message}`,
+          message: "Login Again, Invalid Token",
         });
       }
 
@@ -55,7 +56,7 @@ const authenticate = async (
 
       let refreshVerifiedUser: TokenPayload;
       try {
-        refreshVerifiedUser = jwtUtilities.verifyToken(refreshToken);
+        refreshVerifiedUser = jwtUtilities.verifyToken(refreshToken, "refresh");
       } catch {
         return response.status(401).json({
           status: "error",
@@ -65,7 +66,7 @@ const authenticate = async (
 
       const user = await User.findByPk(refreshVerifiedUser.id);
 
-      if (!user || user.get("refreshToken") !== refreshToken) {
+      if (!user || user.get("refreshToken") !== hashToken(refreshToken)) {
         return response.status(401).json({
           status: "error",
           message: "Please login again.",
@@ -75,18 +76,18 @@ const authenticate = async (
       const tokenPayload: TokenPayload = { id: refreshVerifiedUser.id };
 
       const newAccessToken = jwtUtilities.signToken(
-        tokenPayload,
+        { id: tokenPayload.id, typ: "access" },
         TokenDuration.accessTokenDuration,
       );
       const newRefreshToken = jwtUtilities.signToken(
-        tokenPayload,
+        { id: tokenPayload.id, typ: "refresh" },
         TokenDuration.refreshTokenDuration,
       );
 
       response.setHeader("x-access-token", newAccessToken);
       response.setHeader("x-refresh-token", newRefreshToken);
 
-      await user.update({ refreshToken: newRefreshToken });
+      await user.update({ refreshToken: hashToken(newRefreshToken) });
 
       request.user = tokenPayload;
       return next();
@@ -95,9 +96,10 @@ const authenticate = async (
     request.user = verifiedUser;
     return next();
   } catch (error: any) {
+    console.error("Authentication error:", error.message);
     return response.status(500).json({
       status: "error",
-      message: `Internal Server Error: ${error.message}`,
+      message: "Internal Server Error",
     });
   }
 };

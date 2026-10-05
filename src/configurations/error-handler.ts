@@ -9,7 +9,10 @@ const createError = (message: string, statusCode: number, data?: any) => ({
 });
 
 const createUnknownError = (error: any) => ({
-  message: `Something went wrong: ${error.message || "Unknown error"}`,
+  message:
+    process.env.NODE_ENV === "development"
+      ? `Something went wrong: ${error.message || "Unknown error"}`
+      : "Something went wrong",
   statusCode: error.statusCode || 500,
   timestamp: new Date(),
   details: error.stack || error.message,
@@ -51,7 +54,11 @@ const globalErrorHandler: ErrorRequestHandler = (
     status: "error",
     message: errorResponse.message,
     timestamp: errorResponse.timestamp,
-    details: !err.isOperational ? errorResponse.details : "",
+    // Stack traces are for the server log only.
+    details:
+      !err.isOperational && process.env.NODE_ENV === "development"
+        ? errorResponse.details
+        : "",
   });
 };
 

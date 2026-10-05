@@ -24,6 +24,22 @@ const respondWithErrors = (response: Response, error: Joi.ValidationError) => {
   });
 };
 
+// NUL bytes make Postgres reject the whole statement (a 500 an attacker can
+// trigger at will); other C0/C1 control characters have no place in form
+// input and enable log/terminal/email-header tricks. Tab and newline stay.
+const CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g;
+
+const stripControlChars = (value: unknown): unknown => {
+  if (typeof value === "string") return value.replace(CONTROL_CHARS, "");
+  if (Array.isArray(value)) return value.map(stripControlChars);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, inner]) => [key, stripControlChars(inner)]),
+    );
+  }
+  return value;
+};
+
 const validate = (schema: Joi.Schema) => {
   return (request: Request, response: Response, next: NextFunction): any => {
     const { error, value } = schema.validate(request.body, {
@@ -32,7 +48,6 @@ const validate = (schema: Joi.Schema) => {
     });
     
     if (error) {
-      console.log('checking', error)
       return respondWithErrors(response, error);
     }
 
@@ -44,7 +59,7 @@ const validate = (schema: Joi.Schema) => {
 /** Same as `validate`, but validates `req.query` instead of `req.body`. */
 export const validateQuery = (schema: Joi.Schema) => {
   return (request: Request, response: Response, next: NextFunction): any => {
-    const { error, value } = schema.validate(request.query, {
+    const { error, value } = schema.validate(stripControlChars(request.query), {
       abortEarly: false,
       stripUnknown: true,
     });
