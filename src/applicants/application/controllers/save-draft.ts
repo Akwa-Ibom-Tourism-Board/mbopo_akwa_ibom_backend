@@ -5,6 +5,7 @@ import saveDraftService from "../services/save-draft.service";
 
 const saveDraft = errorUtilities.withControllerErrorHandling(
   async (request: Request, response: Response) => {
+    console.log('checks', request.user!.id, request.body)
     const result = await saveDraftService(request.user!.id, request.body);
 
     return responseUtilities.responseHandler(

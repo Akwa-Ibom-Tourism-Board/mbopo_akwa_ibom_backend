@@ -1,16 +1,16 @@
 import Queue from "bull";
 import configurations from ".";
-import { sendEmail } from "./email";
+import { sendEmail, EmailPayload } from "./email-sender";
+
+// Every email waits this long in the queue before it is sent.
+const EMAIL_SEND_DELAY_MS = 5_000;
 
 const emailQueue = new Queue("email queue", configurations.REDIS_URL!);
 
-export const queueEmail = async (payload: {
-  to: string;
-  subject: string;
-  htmlBody: string;
-}): Promise<void> => {
+export const queueEmail = async (payload: EmailPayload): Promise<void> => {
   emailQueue
     .add("sendEmail", payload, {
+      delay: EMAIL_SEND_DELAY_MS,
       attempts: 3,
       backoff: {
         type: "exponential",

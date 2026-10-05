@@ -6,6 +6,9 @@ import { StatusCodes } from "../../../configurations/statusCodes";
 import { database } from "../../../configurations/database";
 import { Application, ApplicationStatus } from "../Application";
 import { findApplicationForUpdate } from "../application.helpers";
+import { queueEmail } from "../../../configurations/email-queue";
+import { User } from "../../../auth/User";
+import { applicationSubmittedTemplate } from "../emailTemplates/applicationSubmitted";
 import { applicationSubmitSchema } from "../application.routes";
 import { createNotification } from "../../../notifications/services/create.service";
 import { NotificationType } from "../../../notifications/Notification";
@@ -114,6 +117,27 @@ const submitService = errorUtilities.withServiceErrorHandling(
       body: `Your Mbopo Akwa Ibom application was submitted successfully. Your reference code is ${result.referenceCode}.`,
       type: NotificationType.Application,
     });
+
+    // Confirmation email — best-effort like the notification: the
+    // application is already submitted, so nothing here may fail the request.
+    try {
+      const applicant = await User.findByPk(applicantId, {
+        attributes: ["email", "firstName"],
+      });
+      if (applicant) {
+        const template = applicationSubmittedTemplate(
+          (applicant.get("firstName") as string | null) ?? null,
+          result.referenceCode,
+        );
+        await queueEmail({
+          to: applicant.get("email") as string,
+          subject: template.subject,
+          htmlBody: template.htmlBody,
+        });
+      }
+    } catch (error: any) {
+      console.error("Failed to queue submission email:", error.message);
+    }
 
     return responseUtilities.handleServicesResponse(
       StatusCodes.OK,

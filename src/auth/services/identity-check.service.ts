@@ -65,9 +65,6 @@ const lookupIdentity = async (
     verifyVIN(vin),
   ]);
 
-  console.log("NIN Result:", ninResult);
-  console.log("VIN Result:", vinResult);
-
   const dateOfBirth = parseDateOfBirth(ninResult.dateOfBirth);
   if (!dateOfBirth) {
     throw errorUtilities.createError(

@@ -13,32 +13,33 @@ import getMine from "./controllers/get-mine";
 
 const router = express.Router();
 
-// Loose — every field optional, only whatever is present gets validated.
+// Loose — every field optional and nullable/blank (the frontend echoes the
+// stored draft back, where untouched fields are null); only whatever is present gets validated.
 // Used by both the draft create/update routes and as a starting point for
 // the full submit schema below. Everything here is freely re-editable
 // while the application is still a Draft — the video pitch is not part of
 // this schema at all: it's uploaded (and locked) through /photo, never
 // through /draft. See upload-photo.service.ts's videoPitch lock check.
 const draftFieldSchema = {
-  middleName: Joi.string().trim().allow("").optional(),
-  phone: Joi.string().trim().optional(),
-  socialMedia: Joi.string().trim().allow("").optional(),
-  nextOfKin: Joi.string().trim().optional(),
-  nextOfKinPhone: Joi.string().trim().optional(),
-  village: Joi.string().trim().optional(),
-  residenceState: Joi.string().trim().optional(),
-  city: Joi.string().trim().optional(),
-  address: Joi.string().trim().optional(),
-  education: Joi.string().trim().optional(),
-  institution: Joi.string().trim().allow("").optional(),
-  occupation: Joi.string().trim().optional(),
-  talents: Joi.string().trim().optional(),
-  languages: Joi.string().trim().optional(),
-  initiative: Joi.string().trim().allow("").optional(),
-  why: Joi.string().trim().optional(),
-  declarationIdentity: Joi.boolean().optional(),
-  declarationAccuracy: Joi.boolean().optional(),
-  declarationTerms: Joi.boolean().optional(),
+  middleName: Joi.string().trim().allow("", null).optional(),
+  phone: Joi.string().trim().allow("", null).optional(),
+  socialMedia: Joi.string().trim().allow("", null).optional(),
+  nextOfKin: Joi.string().trim().allow("", null).optional(),
+  nextOfKinPhone: Joi.string().trim().allow("", null).optional(),
+  village: Joi.string().trim().allow("", null).optional(),
+  residenceState: Joi.string().trim().allow("", null).optional(),
+  city: Joi.string().trim().allow("", null).optional(),
+  address: Joi.string().trim().allow("", null).optional(),
+  education: Joi.string().trim().allow("", null).optional(),
+  institution: Joi.string().trim().allow("", null).optional(),
+  occupation: Joi.string().trim().allow("", null).optional(),
+  talents: Joi.string().trim().allow("", null).optional(),
+  languages: Joi.string().trim().allow("", null).optional(),
+  initiative: Joi.string().trim().allow("", null).optional(),
+  why: Joi.string().trim().allow("", null).optional(),
+  declarationIdentity: Joi.boolean().allow(null).optional(),
+  declarationAccuracy: Joi.boolean().allow(null).optional(),
+  declarationTerms: Joi.boolean().allow(null).optional(),
 };
 
 export const draftSchema = Joi.object(draftFieldSchema);
@@ -76,6 +77,8 @@ export const applicationSubmitSchema = Joi.object({
   "any.required": "{{#label}} is required",
   "any.only": "{{#label}} must be accepted",
   "string.empty": "{{#label}} is required",
+  "string.base": "{{#label}} is required",
+  "boolean.base": "{{#label}} must be accepted",
 });
 
 const photoFieldSchema = Joi.object({
@@ -86,10 +89,15 @@ const photoFieldSchema = Joi.object({
       "any.only": `field must be one of ${PHOTO_FIELDS.join(", ")}`,
       "any.required": "field is required",
     }),
-  url: Joi.string().trim().uri({ scheme: "https" }).max(2048).required().messages({
-    "any.required": "url is required",
-    "string.uri": "url must be a valid https URL",
-  }),
+  url: Joi.string()
+    .trim()
+    .uri({ scheme: "https" })
+    .max(2048)
+    .required()
+    .messages({
+      "any.required": "url is required",
+      "string.uri": "url must be a valid https URL",
+    }),
   publicId: Joi.string().trim().max(512).required().messages({
     "any.required": "publicId is required",
   }),
@@ -100,12 +108,7 @@ const photoFieldSchema = Joi.object({
 router.post("/draft", authenticate, validate(draftSchema), saveDraft);
 router.get("/draft", authenticate, getDraft);
 router.patch("/draft", authenticate, validate(draftSchema), updateDraft);
-router.post(
-  "/photo",
-  authenticate,
-  validate(photoFieldSchema),
-  uploadPhoto,
-);
+router.post("/photo", authenticate, validate(photoFieldSchema), uploadPhoto);
 router.post("/submit", authenticate, validate(draftSchema), submit);
 router.get("/", authenticate, getMine);
 
