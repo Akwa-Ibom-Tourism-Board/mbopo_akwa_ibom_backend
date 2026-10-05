@@ -6,6 +6,41 @@ import { StatusCodes } from "../../configurations/statusCodes";
 import { User } from "../../auth/User";
 import { Application, ApplicationStatus } from "./Application";
 
+/** "uYo cITY" -> "Uyo city". For free-text only — never codes (VIN/NIN). */
+export function toSentenceCase(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+}
+
+const SENTENCE_CASE_FIELDS = [
+  "middleName",
+  "nextOfKin",
+  "village",
+  "city",
+  "address",
+  "talents",
+  "languages",
+  "initiative",
+  "why",
+  "occupation",
+  "institution",
+] as const;
+
+/**
+ * Defense-in-depth backstop for the frontend's own formatting: sentence-cases
+ * the free-text fields of a draft/submit payload before it's written.
+ */
+export const normalizeDraftPayload = (payload: Record<string, any>): Record<string, any> => {
+  const normalized = { ...payload };
+  for (const field of SENTENCE_CASE_FIELDS) {
+    if (typeof normalized[field] === "string") {
+      normalized[field] = toSentenceCase(normalized[field]);
+    }
+  }
+  return normalized;
+};
+
 export const SUBMITTED_ERROR =
   "This application has already been submitted and can no longer be edited";
 export const UNVERIFIED_ERROR =

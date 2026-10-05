@@ -2,7 +2,7 @@ import errorUtilities from "../../../configurations/error-handler";
 import responseUtilities from "../../../configurations/response";
 import { StatusCodes } from "../../../configurations/statusCodes";
 import { database } from "../../../configurations/database";
-import { lockOrCreateDraft } from "../application.helpers";
+import { lockOrCreateDraft, normalizeDraftPayload } from "../application.helpers";
 
 const saveDraftService = errorUtilities.withServiceErrorHandling(
   async (applicantId: string, payload: Record<string, any>) => {
@@ -11,7 +11,7 @@ const saveDraftService = errorUtilities.withServiceErrorHandling(
     // serialize against submit.
     const { application, created } = await database.transaction(async (transaction) => {
       const result = await lockOrCreateDraft(applicantId, transaction);
-      await result.application.update(payload, { transaction });
+      await result.application.update(normalizeDraftPayload(payload), { transaction });
       return result;
     });
 

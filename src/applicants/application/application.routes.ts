@@ -3,6 +3,7 @@ import Joi from "joi";
 import validate from "../../configurations/validate";
 import authenticate from "../../configurations/authenticate";
 import { PHOTO_FIELDS } from "../../configurations/cloudinary";
+import { AKWA_IBOM_LGAS } from "../../configurations/constants";
 
 import saveDraft from "./controllers/save-draft";
 import getDraft from "./controllers/get-draft";
@@ -37,6 +38,14 @@ const draftFieldSchema = {
   languages: Joi.string().trim().max(300).allow("", null).optional(),
   initiative: Joi.string().trim().max(2000).allow("", null).optional(),
   why: Joi.string().trim().max(3000).allow("", null).optional(),
+  // Plain draft text — never triggers a DVP call; only final submit does.
+  vin: Joi.string().trim().length(19).alphanum().uppercase().allow("", null).optional().messages({
+    "string.length": "VIN must be exactly 19 characters",
+    "string.alphanum": "VIN must contain only letters and numbers",
+  }),
+  localGovernment: Joi.string().trim().valid(...AKWA_IBOM_LGAS).allow("", null).optional().messages({
+    "any.only": "localGovernment must be a valid Akwa Ibom LGA",
+  }),
   declarationIdentity: Joi.boolean().allow(null).optional(),
   declarationAccuracy: Joi.boolean().allow(null).optional(),
   declarationTerms: Joi.boolean().allow(null).optional(),
@@ -65,10 +74,11 @@ export const applicationSubmitSchema = Joi.object({
   talents: Joi.string().trim().required(),
   languages: Joi.string().trim().required(),
   why: Joi.string().trim().required(),
+  vin: Joi.string().trim().length(19).alphanum().uppercase().required(),
+  localGovernment: Joi.string().trim().valid(...AKWA_IBOM_LGAS).required(),
   declarationIdentity: Joi.boolean().valid(true).required(),
   declarationAccuracy: Joi.boolean().valid(true).required(),
   declarationTerms: Joi.boolean().valid(true).required(),
-  passportPhotoUrl: Joi.string().trim().required(),
   certificateOfOriginUrl: Joi.string().trim().required(),
   fullImageUrl: Joi.string().trim().required(),
   fullImageUrl2: Joi.string().trim().required(),

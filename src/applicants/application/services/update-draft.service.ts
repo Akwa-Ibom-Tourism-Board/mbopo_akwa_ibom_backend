@@ -2,7 +2,7 @@ import errorUtilities from "../../../configurations/error-handler";
 import responseUtilities from "../../../configurations/response";
 import { StatusCodes } from "../../../configurations/statusCodes";
 import { database } from "../../../configurations/database";
-import { assertDraft, findApplicationForUpdate } from "../application.helpers";
+import { assertDraft, findApplicationForUpdate, normalizeDraftPayload } from "../application.helpers";
 
 const updateDraftService = errorUtilities.withServiceErrorHandling(
   async (applicantId: string, payload: Record<string, any>) => {
@@ -17,7 +17,7 @@ const updateDraftService = errorUtilities.withServiceErrorHandling(
       }
 
       assertDraft(locked);
-      await locked.update(payload, { transaction });
+      await locked.update(normalizeDraftPayload(payload), { transaction });
       return locked;
     });
 
