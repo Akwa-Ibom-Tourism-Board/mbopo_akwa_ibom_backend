@@ -1,7 +1,7 @@
 node_modules
 dist
 .env
-uploads
+/uploads
 BUILD_ME.md
 flyway-local.conf
 flyway-prod.conf
