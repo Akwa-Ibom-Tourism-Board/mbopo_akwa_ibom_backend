@@ -3,6 +3,7 @@ import Joi from "joi";
 import validate from "../configurations/validate";
 import authenticate from "../configurations/authenticate";
 import { limiter, otpResendLimiter } from "../configurations/rate-limit";
+import verifyCaptcha from "../configurations/captcha";
 import { NIGERIAN_PHONE_REGEX } from "../configurations/constants";
 
 import register from "./controllers/register";
@@ -22,7 +23,7 @@ import uploadAvatar from "./controllers/upload-avatar";
 
 const router = express.Router();
 
-const emailSchema = Joi.string().trim().email().lowercase().required().messages({
+const emailSchema = Joi.string().trim().email().lowercase().max(254).required().messages({
   "string.email": "Invalid email format",
   "any.required": "Email is required",
 });
@@ -41,9 +42,11 @@ const ninSchema = Joi.string()
 const vinSchema = Joi.string()
   .trim()
   .length(19)
+  .alphanum()
   .required()
   .messages({
     "string.length": "VIN must be exactly 19 characters",
+    "string.alphanum": "VIN must contain only letters and numbers",
     "any.required": "VIN is required",
   });
 
@@ -58,10 +61,19 @@ const otpSchema = Joi.string().trim().length(6).pattern(/^\d{6}$/).required().me
   "any.required": "Code is required",
 });
 
-const passwordSchema = Joi.string().min(8).max(128).required().messages({
+const passwordSchema = Joi.string().min(8).max(72).required().messages({
   "string.min": "Password must be at least 8 characters",
   "any.required": "Password is required",
 });
+
+// Letters (any script), combining marks, spaces, apostrophes, hyphens, dots:
+// no angle brackets or other markup can be stored in a name.
+const personNameSchema = Joi.string()
+  .trim()
+  .min(1)
+  .max(100)
+  .pattern(/^[\p{L}\p{M}][\p{L}\p{M}' .-]*$/u)
+  .messages({ "string.pattern.base": "Name contains invalid characters" });
 
 const registerSchema = Joi.object({
   email: emailSchema,
@@ -72,18 +84,21 @@ const verifyEmailOtpSchema = Joi.object({ email: emailSchema, otp: otpSchema });
 const resendEmailOtpSchema = Joi.object({ email: emailSchema });
 const loginSchema = Joi.object({
   email: emailSchema,
-  password: Joi.string().required().messages({ "any.required": "Password is required" }),
+  password: Joi.string().max(72).required().messages({ "any.required": "Password is required" }),
 });
 const loginRequestOtpSchema = Joi.object({ email: emailSchema });
 const loginVerifyOtpSchema = Joi.object({ email: emailSchema, otp: otpSchema });
 const forgotPasswordSchema = Joi.object({ email: emailSchema });
 const resetPasswordSchema = Joi.object({
-  token: Joi.string().trim().required().messages({ "any.required": "Reset token is required" }),
+  token: Joi.string().trim().pattern(/^[a-f0-9]{64}$/).required().messages({
+    "string.pattern.base": "Invalid or expired reset token",
+    "any.required": "Reset token is required",
+  }),
   password: passwordSchema,
 });
 const updateMeSchema = Joi.object({
-  firstName: Joi.string().trim().min(1).max(100).optional(),
-  lastName: Joi.string().trim().min(1).max(100).optional(),
+  firstName: personNameSchema.optional(),
+  lastName: personNameSchema.optional(),
   phoneNumber: phoneSchema.optional(),
 });
 const avatarSchema = Joi.object({
@@ -98,21 +113,22 @@ const avatarSchema = Joi.object({
   bytes: Joi.number().integer().min(0).optional(),
 });
 const changePasswordSchema = Joi.object({
-  currentPassword: Joi.string().required().messages({ "any.required": "Current password is required" }),
+  currentPassword: Joi.string().max(72).required().messages({ "any.required": "Current password is required" }),
   newPassword: passwordSchema,
 });
 
-router.post("/register", limiter, validate(registerSchema), register);
+router.post("/register", limiter, verifyCaptcha, validate(registerSchema), register);
 router.post(
   "/identity-check",
   authenticate,
   limiter,
+  verifyCaptcha,
   validate(identityCheckSchema),
   identityCheck,
 );
 router.post("/verify-email-otp", limiter, validate(verifyEmailOtpSchema), verifyEmailOtp);
 router.post("/resend-email-otp", otpResendLimiter, validate(resendEmailOtpSchema), resendEmailOtp);
-router.post("/login", limiter, validate(loginSchema), login);
+router.post("/login", limiter, verifyCaptcha, validate(loginSchema), login);
 router.post("/login/request-otp", limiter, validate(loginRequestOtpSchema), loginRequestOtp);
 router.post("/login/verify-otp", limiter, validate(loginVerifyOtpSchema), loginVerifyOtp);
 router.post("/forgot-password", limiter, validate(forgotPasswordSchema), forgotPassword);

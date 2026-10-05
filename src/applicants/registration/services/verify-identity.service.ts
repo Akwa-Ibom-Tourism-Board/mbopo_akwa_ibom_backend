@@ -51,17 +51,30 @@ const verifyIdentityService = errorUtilities.withServiceErrorHandling(
     }
 
     try {
-      await user.update({
-        nin: identity.nin,
-        vin: identity.vin,
-        firstName: identity.firstName,
-        lastName: identity.lastName,
-        gender: identity.gender,
-        dateOfBirth: identity.dateOfBirth,
-        localGovernment: identity.localGovernment,
-        ward: identity.ward,
-        identityVerified: true,
-      });
+      // Conditional update: the WHERE identityVerified = false makes
+      // "one-time" a database guarantee. Two concurrent calls (possibly with
+      // different NIN/VINs) can't both write — the loser affects zero rows.
+      const [affected] = await User.update(
+        {
+          nin: identity.nin,
+          vin: identity.vin,
+          firstName: identity.firstName,
+          lastName: identity.lastName,
+          gender: identity.gender,
+          dateOfBirth: identity.dateOfBirth,
+          localGovernment: identity.localGovernment,
+          ward: identity.ward,
+          identityVerified: true,
+        },
+        { where: { id: userId, identityVerified: false } },
+      );
+      if (affected === 0) {
+        throw errorUtilities.createError(
+          "Your identity has already been verified",
+          StatusCodes.BAD_REQUEST,
+        );
+      }
+      await user.reload();
     } catch (error: any) {
       if (error instanceof UniqueConstraintError) {
         const violatedField = Object.keys(error.fields || {})[0];

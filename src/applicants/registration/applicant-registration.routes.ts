@@ -18,8 +18,9 @@ const verifyIdentitySchema = Joi.object({
       "string.pattern.base": "NIN must contain only digits",
       "any.required": "NIN is required",
     }),
-  vin: Joi.string().trim().length(19).required().messages({
+  vin: Joi.string().trim().length(19).alphanum().required().messages({
     "string.length": "VIN must be exactly 19 characters",
+    "string.alphanum": "VIN must contain only letters and numbers",
     "any.required": "VIN is required",
   }),
 });
