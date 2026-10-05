@@ -28,8 +28,8 @@ export interface VerifyIdentityPayload {
 const evaluateEligibility = (ninResult: NINVerificationResult, dateOfBirth: string): string[] => {
   const reasons: string[] = [];
 
-  if (ninResult.gender?.toLowerCase() !== Gender.Male) {
-    reasons.push("Applicants must be male");
+  if (ninResult.gender?.toLowerCase() !== Gender.Female) {
+    reasons.push("Applicants must be female");
   }
   if (!isEligibleAge(dateOfBirth)) {
     reasons.push("Applicants must be between 22 and 27 years old");
@@ -123,7 +123,7 @@ const verifyIdentityService = errorUtilities.withServiceErrorHandling(
           firstName: ninResult.firstName,
           lastName: ninResult.lastName,
           middleName: ninResult.middleName || payload.middleName || null,
-          gender: Gender.Male,
+          gender: Gender.Female,
           dateOfBirth,
           avatarUrl: avatar.url,
           avatarPublicId: avatar.publicId,

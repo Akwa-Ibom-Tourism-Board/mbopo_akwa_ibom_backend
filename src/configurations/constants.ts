@@ -37,4 +37,4 @@ export const AKWA_IBOM_LGAS = [
 export const NIGERIAN_PHONE_REGEX = /^(0[789][01]\d{8}|234[789][01]\d{8})$/;
 
 export const MINIMUM_ELIGIBLE_AGE = 22;
-export const MAXIMUM_ELIGIBLE_AGE = 40;
+export const MAXIMUM_ELIGIBLE_AGE = 27;
