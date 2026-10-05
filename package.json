@@ -18,6 +18,18 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/compression": "^1.8.1",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/lodash.merge": "^4.6.9",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^22.10.2",
+    "@types/nodemailer": "^7.0.5",
+    "@types/pg": "^8.16.0",
+    "@types/uuid": "^10.0.0",
     "axios": "^1.12.2",
     "bcryptjs": "^3.0.2",
     "bull": "^4.16.5",
@@ -37,25 +49,13 @@
     "nodemailer": "^7.0.9",
     "pg": "^8.16.3",
     "sequelize": "^6.37.7",
+    "typescript": "^5.9.3",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/compression": "^1.8.1",
-    "@types/cookie-parser": "^1.4.10",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/lodash.merge": "^4.6.9",
-    "@types/morgan": "^1.9.10",
-    "@types/node": "^22.10.2",
-    "@types/nodemailer": "^7.0.5",
-    "@types/pg": "^8.16.0",
-    "@types/uuid": "^10.0.0",
     "cross-env": "^10.1.0",
     "eslint": "^9.37.0",
     "nodemon": "^3.1.10",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "ts-node": "^10.9.2"
   }
 }
