@@ -17,6 +17,9 @@ const app = express();
 
 errorUtilities.processErrorHandler();
 
+// Behind Render's proxy: trust exactly one hop so req.ip (and therefore the
+// rate limiters) sees the real client, not the proxy's shared address.
+app.set("trust proxy", 1);
 app.disable("x-powered-by");
 app.use(helmet());
 app.use(compression());

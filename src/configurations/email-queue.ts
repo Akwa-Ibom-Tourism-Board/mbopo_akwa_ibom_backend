@@ -5,7 +5,15 @@ import { sendEmail, EmailPayload } from "./email-sender";
 // Every email waits this long in the queue before it is sent.
 const EMAIL_SEND_DELAY_MS = 5_000;
 
+if (!configurations.REDIS_URL) {
+  console.error("❌ REDIS_URL is not set — queued emails will never be delivered");
+}
+
 const emailQueue = new Queue("email queue", configurations.REDIS_URL!);
+
+// Without these, a bad Redis URL fails silently and emails just vanish.
+emailQueue.on("error", (error) => console.error("Email queue error:", error.message));
+emailQueue.on("ready", () => console.log("📬 Email queue connected to Redis"));
 
 export const queueEmail = async (payload: EmailPayload): Promise<void> => {
   emailQueue
@@ -19,6 +27,7 @@ export const queueEmail = async (payload: EmailPayload): Promise<void> => {
       removeOnComplete: true,
       removeOnFail: true,
     })
+    .then((job) => console.log(`Email job ${job.id} queued for ${payload.subject}`))
     .catch((error) => {
       console.error("Failed to add email to queue:", error);
     });
