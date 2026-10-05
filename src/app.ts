@@ -60,9 +60,10 @@ app.use(
   }),
 );
 app.use(logger(process.env.NODE_ENV === "production" ? "combined" : "dev"));
-// JSON only (files go straight to Cloudinary), and small: nothing here
-// legitimately needs more than a few KB.
-app.use(express.json({ limit: "50kb" }));
+// JSON only (files go straight to Cloudinary). 2mb exists solely for the
+// ~1MB base64 selfie on /applicants/verify-identity (~1.4MB of JSON); every
+// other body is a few KB. Auth + rate limits sit in front of that route.
+app.use(express.json({ limit: "2mb" }));
 app.use(cookieParser());
 
 app.use("/api/v1", generalLimiter, rootRouter);

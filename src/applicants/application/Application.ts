@@ -29,6 +29,8 @@ export interface ApplicationAttributes {
   declarationIdentity?: boolean | null;
   declarationAccuracy?: boolean | null;
   declarationTerms?: boolean | null;
+  vin?: string | null;
+  localGovernment?: string | null;
   passportPhotoUrl?: string | null;
   passportPhotoPublicId?: string | null;
   certificateOfOriginUrl?: string | null;
@@ -104,6 +106,12 @@ Application.init(
       allowNull: true,
       defaultValue: false,
     },
+
+    // Plain draft text — deliberately NOT unique (an unverified VIN typed into
+    // a draft must never block another applicant). Uniqueness lives on
+    // User.vin, written only once a VIN is verified at submit.
+    vin: { type: DataTypes.STRING(19), allowNull: true },
+    localGovernment: { type: DataTypes.STRING, allowNull: true },
 
     passportPhotoUrl: { type: DataTypes.TEXT, allowNull: true },
     passportPhotoPublicId: { type: DataTypes.TEXT, allowNull: true },

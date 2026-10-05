@@ -6,7 +6,6 @@ import { assertValidUploadReference, PhotoField } from "../../../configurations/
 import { lockOrCreateDraft } from "../application.helpers";
 
 export const PHOTO_FIELD_TO_COLUMNS: Record<PhotoField, { url: string; publicId: string }> = {
-  passportPhoto: { url: "passportPhotoUrl", publicId: "passportPhotoPublicId" },
   certificateOfOrigin: { url: "certificateOfOriginUrl", publicId: "certificateOfOriginPublicId" },
   fullImage: { url: "fullImageUrl", publicId: "fullImagePublicId" },
   fullImage2: { url: "fullImageUrl2", publicId: "fullImagePublicId2" },

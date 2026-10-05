@@ -5,8 +5,14 @@ import verifyIdentityService from "../services/verify-identity.service";
 
 const verifyIdentity = errorUtilities.withControllerErrorHandling(
   async (request: Request, response: Response) => {
-    const { nin, vin } = request.body;
-    const result = await verifyIdentityService(request.user!.id, { nin, vin });
+    const { nin, firstName, lastName, middleName, image } = request.body;
+    const result = await verifyIdentityService(request.user!.id, {
+      nin,
+      firstName,
+      lastName,
+      middleName,
+      image,
+    });
 
     return responseUtilities.responseHandler(
       response,

@@ -5,9 +5,9 @@ import authenticate from "../configurations/authenticate";
 import { limiter, otpResendLimiter } from "../configurations/rate-limit";
 import verifyCaptcha from "../configurations/captcha";
 import { NIGERIAN_PHONE_REGEX } from "../configurations/constants";
+import { personNameSchema } from "./auth.schemas";
 
 import register from "./controllers/register";
-import identityCheck from "./controllers/identity-check";
 import verifyEmailOtp from "./controllers/verify-email-otp";
 import resendEmailOtp from "./controllers/resend-email-otp";
 import login from "./controllers/login";
@@ -28,28 +28,6 @@ const emailSchema = Joi.string().trim().email().lowercase().max(254).required().
   "any.required": "Email is required",
 });
 
-const ninSchema = Joi.string()
-  .trim()
-  .length(11)
-  .pattern(/^\d{11}$/)
-  .required()
-  .messages({
-    "string.length": "NIN must be exactly 11 digits",
-    "string.pattern.base": "NIN must contain only digits",
-    "any.required": "NIN is required",
-  });
-
-const vinSchema = Joi.string()
-  .trim()
-  .length(19)
-  .alphanum()
-  .required()
-  .messages({
-    "string.length": "VIN must be exactly 19 characters",
-    "string.alphanum": "VIN must contain only letters and numbers",
-    "any.required": "VIN is required",
-  });
-
 const phoneSchema = Joi.string().trim().pattern(NIGERIAN_PHONE_REGEX).required().messages({
   "string.pattern.base": "Invalid Nigerian phone number. Format: 0803XXXXXXX or 234803XXXXXXX",
   "any.required": "Phone number is required",
@@ -66,20 +44,10 @@ const passwordSchema = Joi.string().min(8).max(72).required().messages({
   "any.required": "Password is required",
 });
 
-// Letters (any script), combining marks, spaces, apostrophes, hyphens, dots:
-// no angle brackets or other markup can be stored in a name.
-const personNameSchema = Joi.string()
-  .trim()
-  .min(1)
-  .max(100)
-  .pattern(/^[\p{L}\p{M}][\p{L}\p{M}' .-]*$/u)
-  .messages({ "string.pattern.base": "Name contains invalid characters" });
-
 const registerSchema = Joi.object({
   email: emailSchema,
   password: passwordSchema,
 });
-const identityCheckSchema = Joi.object({ nin: ninSchema, vin: vinSchema });
 const verifyEmailOtpSchema = Joi.object({ email: emailSchema, otp: otpSchema });
 const resendEmailOtpSchema = Joi.object({ email: emailSchema });
 const loginSchema = Joi.object({
@@ -118,14 +86,6 @@ const changePasswordSchema = Joi.object({
 });
 
 router.post("/register", limiter, verifyCaptcha, validate(registerSchema), register);
-router.post(
-  "/identity-check",
-  authenticate,
-  limiter,
-  verifyCaptcha,
-  validate(identityCheckSchema),
-  identityCheck,
-);
 router.post("/verify-email-otp", limiter, validate(verifyEmailOtpSchema), verifyEmailOtp);
 router.post("/resend-email-otp", otpResendLimiter, validate(resendEmailOtpSchema), resendEmailOtp);
 router.post("/login", limiter, verifyCaptcha, validate(loginSchema), login);

@@ -1,10 +1,10 @@
+import axios from "axios";
 import { v2 as cloudinary } from "cloudinary";
 import config from ".";
 import errorUtilities from "./error-handler";
 import { StatusCodes } from "./statusCodes";
 
 export type PhotoField =
-  | "passportPhoto"
   | "certificateOfOrigin"
   | "fullImage"
   | "fullImage2"
@@ -13,7 +13,6 @@ export type UploadField = PhotoField | "avatar";
 export type CloudinaryResourceType = "image" | "video";
 
 export const PHOTO_FIELDS: readonly PhotoField[] = [
-  "passportPhoto",
   "certificateOfOrigin",
   "fullImage",
   "fullImage2",
@@ -51,7 +50,6 @@ export const resourceTypeFor = (field: UploadField): CloudinaryResourceType =>
 // Per-slot format allow-list, enforced by Cloudinary itself (it's a signed
 // param, so the client can't widen it). Replaces the old multer mime check.
 const ALLOWED_FORMATS: Record<UploadField, string> = {
-  passportPhoto: "jpg,jpeg,png",
   certificateOfOrigin: "jpg,jpeg,png,pdf",
   fullImage: "jpg,jpeg,png",
   fullImage2: "jpg,jpeg,png",
@@ -156,5 +154,72 @@ export function assertValidUploadReference(
     !decodeURIComponent(parsed.pathname).includes(`/${publicId}`)
   ) {
     throw invalid();
+  }
+}
+
+const NIN_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+const NIN_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+// Registrable domain (last two labels), so a DVP photo served from a
+// sibling subdomain still passes while arbitrary hosts don't.
+const registrableDomain = (hostname: string) => hostname.split(".").slice(-2).join(".");
+
+/**
+ * Copies the NIN record's photo from the DVP onto Cloudinary as the user's
+ * permanent avatar, at the deterministic avatar public_id (so a retry
+ * overwrites in place). The URL comes from a third party, so it's only
+ * fetched over https from the DVP's own domain, with no redirects, a size
+ * cap and a content-type check.
+ */
+export async function copyNinPhotoToAvatar(
+  userId: string,
+  photoUrl: string,
+): Promise<{ url: string; publicId: string }> {
+  const { cloudName, apiKey, apiSecret } = requireCredentials();
+  const failed = (message: string) =>
+    errorUtilities.createError(message, StatusCodes.BAD_GATEWAY);
+
+  let parsed: URL;
+  try {
+    parsed = new URL(photoUrl);
+    const dvpHost = new URL(config.DVP_BASE_URL as string).hostname;
+    if (
+      parsed.protocol !== "https:" ||
+      registrableDomain(parsed.hostname) !== registrableDomain(dvpHost)
+    ) {
+      throw new Error("untrusted host");
+    }
+  } catch {
+    console.error("NIN photo URL rejected:", photoUrl);
+    throw failed("Could not save your verified photo. Please try again.");
+  }
+
+  try {
+    const download = await axios.get<ArrayBuffer>(parsed.toString(), {
+      responseType: "arraybuffer",
+      timeout: 15_000,
+      maxRedirects: 0,
+      maxContentLength: NIN_PHOTO_MAX_BYTES,
+    });
+    const contentType = String(download.headers["content-type"] ?? "").split(";")[0]!.trim();
+    if (!NIN_PHOTO_TYPES.has(contentType)) throw new Error(`unexpected type ${contentType}`);
+
+    cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret, secure: true });
+    const publicId = buildPublicId(userId, "avatar");
+    const dataUri = `data:${contentType};base64,${Buffer.from(download.data).toString("base64")}`;
+
+    const uploaded = await cloudinary.uploader.upload(dataUri, {
+      public_id: publicId,
+      overwrite: true,
+      invalidate: true,
+      resource_type: "image",
+      allowed_formats: ["jpg", "jpeg", "png", "webp"],
+      transformation: [{ width: 512, height: 512, crop: "limit", quality: "auto" }],
+    });
+
+    return { url: uploaded.secure_url, publicId: uploaded.public_id };
+  } catch (error: any) {
+    console.error("NIN photo copy failed:", error.message);
+    throw failed("Could not save your verified photo. Please try again.");
   }
 }

@@ -3,7 +3,6 @@ import crypto from "crypto";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import type { User } from "./User";
-import type { VINVerificationResult } from "../configurations/vin-provider";
 import { AKWA_IBOM_LGAS, MINIMUM_ELIGIBLE_AGE, MAXIMUM_ELIGIBLE_AGE } from "../configurations/constants";
 
 dayjs.extend(customParseFormat);
@@ -92,12 +91,20 @@ export function isEligibleAge(dateOfBirth: string): boolean {
   return age >= MINIMUM_ELIGIBLE_AGE && age <= MAXIMUM_ELIGIBLE_AGE;
 }
 
-export function isAkwaIbomIndigene(vinResult: VINVerificationResult): boolean {
-  if (vinResult.state) {
-    return vinResult.state === "Akwa Ibom";
+/** Minimal shape both VIN and NIN results satisfy. */
+export interface IndigeneCheckInput {
+  state?: string | undefined;
+  lga?: string | undefined;
+}
+
+// A blank/missing source fails closed (not an indigene). Comparison is
+// trimmed and case-insensitive since two upstream sources now feed it.
+export function isAkwaIbomIndigene(input: IndigeneCheckInput): boolean {
+  if (input.state?.trim()) {
+    return input.state.trim().toLowerCase() === "akwa ibom";
   }
-  if (vinResult.lga) {
-    return (AKWA_IBOM_LGAS as readonly string[]).includes(vinResult.lga);
+  if (input.lga?.trim()) {
+    return (AKWA_IBOM_LGAS as readonly string[]).includes(input.lga.trim());
   }
   return false;
 }

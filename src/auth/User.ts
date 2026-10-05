@@ -19,6 +19,7 @@ export interface UserAttributes {
   identityVerified: boolean;
   firstName?: string | null;
   lastName?: string | null;
+  middleName?: string | null;
   phoneNumber?: string | null;
   nin?: string | null;
   vin?: string | null;
@@ -26,6 +27,10 @@ export interface UserAttributes {
   dateOfBirth?: string | null;
   localGovernment?: string | null;
   ward?: string | null;
+  // Judges-only (never serialized): outcome of the most recent submit-time VIN
+  // check. null = no submit attempt has run it yet — NOT "failed".
+  isVinVerified?: boolean | null;
+  vinVerificationFailedReason?: string | null;
   avatarUrl?: string | null;
   avatarPublicId?: string | null;
   emailVerified: boolean;
@@ -71,6 +76,8 @@ User.init(
         this.setDataValue("lastName", toTitleCase(value) as string);
       },
     },
+
+    middleName: { type: DataTypes.STRING, allowNull: true },
 
     email: {
       type: DataTypes.TEXT,
@@ -161,6 +168,11 @@ User.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+
+    // Must default to NULL (not false) so "hasn't submitted yet" is
+    // distinguishable from "VIN check failed".
+    isVinVerified: { type: DataTypes.BOOLEAN, allowNull: true, defaultValue: null },
+    vinVerificationFailedReason: { type: DataTypes.TEXT, allowNull: true },
 
     avatarUrl: {
       type: DataTypes.TEXT,

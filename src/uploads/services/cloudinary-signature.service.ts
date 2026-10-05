@@ -17,7 +17,20 @@ const cloudinarySignatureService = errorUtilities.withServiceErrorHandling(
   async (applicantId: string, field: UploadField) => {
     // Fail-fast gate so a client never wastes an upload. It's advisory:
     // the save endpoint re-checks everything under a row lock.
-    if (field !== "avatar") {
+    if (field === "avatar") {
+      // Never issue a signature that could overwrite the NIN-sourced photo
+      // sitting at the deterministic avatar public_id.
+      const user = await User.findByPk(applicantId, { attributes: ["id", "identityVerified"] });
+      if (!user) {
+        throw errorUtilities.createError("User not found", StatusCodes.NOT_FOUND);
+      }
+      if (user.get("identityVerified")) {
+        throw errorUtilities.createError(
+          "Your profile photo is set from your verified NIN and can't be changed",
+          StatusCodes.FORBIDDEN,
+        );
+      }
+    } else {
       const application = await Application.findOne({ where: { applicantId } });
 
       if (application) {

@@ -9,7 +9,7 @@ import { Application, ApplicationStatus } from "./Application";
 export const SUBMITTED_ERROR =
   "This application has already been submitted and can no longer be edited";
 export const UNVERIFIED_ERROR =
-  "Please verify your NIN and VIN before starting your application";
+  "Please verify your NIN before starting your application";
 
 /**
  * Fetches the applicant's Application with a row lock (SELECT ... FOR

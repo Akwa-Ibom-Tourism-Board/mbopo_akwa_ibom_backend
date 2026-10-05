@@ -1,4 +1,14 @@
-import { dvpPost } from "./dvp-client";
+import { dvpPostWithEnvelope } from "./dvp-client";
+
+export interface VerifyNinInput {
+  nin: string;
+  firstName: string;
+  lastName: string;
+  /** Base64 data URI of the live selfie. */
+  image: string;
+  /** Always true — not a caller-controlled toggle. */
+  mustCheckImage: true;
+}
 
 /**
  * Provider-neutral NIN result. Whatever vendor sits behind verifyNIN must
@@ -13,6 +23,12 @@ export interface NINVerificationResult {
   gender: string;
   /** Any format parseDateOfBirth() accepts (DVP: YYYY-MM-DD). */
   dateOfBirth: string;
+  /** Provider-hosted photo from the NIN record. */
+  photoUrl: string | null;
+  /** State from the NIN record's address, e.g. "Akwa Ibom". */
+  addressState: string | null;
+  /** Face-match outcome; null when the provider returned none. */
+  selfieMatch: boolean | null;
 }
 
 interface DvpNinRecord {
@@ -23,18 +39,29 @@ interface DvpNinRecord {
   mobile?: string | null;
   gender: string;
   date_of_birth: string;
+  image?: string | null;
+  address?: { state?: string | null } | null;
 }
 
 /**
- * Verifies a single NIN against the DVP (POST /identity/nin). Throws an
- * operational error (message + statusCode) on not-found/invalid/unavailable.
+ * Verifies a NIN plus a live selfie against the DVP (POST /identity/nin).
+ * Throws an operational error (message + statusCode) on not-found / invalid
+ * / unavailable. middleName is never sent (not a DVP param).
  */
-const verifyNIN = async (nin: string): Promise<NINVerificationResult> => {
-  const record = await dvpPost<DvpNinRecord>(
+const verifyNIN = async (input: VerifyNinInput): Promise<NINVerificationResult> => {
+  const { record, envelope } = await dvpPostWithEnvelope<DvpNinRecord>(
     "/identity/nin",
-    { nin },
+    {
+      nin: input.nin,
+      first_name: input.firstName,
+      last_name: input.lastName,
+      must_check_image: true,
+      image: input.image,
+    },
     "NIN not found. Please ensure your 11-digit NIN is correct and try again.",
   );
+
+  const selfie = (envelope.validations as any)?.selfie?.match;
 
   return {
     nin: record.nin,
@@ -44,6 +71,9 @@ const verifyNIN = async (nin: string): Promise<NINVerificationResult> => {
     phone: record.mobile ?? "",
     gender: record.gender,
     dateOfBirth: record.date_of_birth,
+    photoUrl: record.image ?? null,
+    addressState: record.address?.state ?? null,
+    selfieMatch: typeof selfie === "boolean" ? selfie : null,
   };
 };
 
