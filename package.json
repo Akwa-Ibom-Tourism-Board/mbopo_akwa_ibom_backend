@@ -50,7 +50,8 @@
     "pg": "^8.16.3",
     "sequelize": "^6.37.7",
     "typescript": "^5.9.3",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "zeptomail": "^8.0.1"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
