@@ -15,6 +15,7 @@ export interface ApplicationAttributes {
   socialMedia?: string | null;
   nextOfKin?: string | null;
   nextOfKinPhone?: string | null;
+  nextOfKinRelationship?: string | null;
   village?: string | null;
   residenceState?: string | null;
   city?: string | null;
@@ -84,6 +85,7 @@ Application.init(
     socialMedia: { type: DataTypes.STRING, allowNull: true },
     nextOfKin: { type: DataTypes.STRING, allowNull: true },
     nextOfKinPhone: { type: DataTypes.STRING, allowNull: true },
+    nextOfKinRelationship: { type: DataTypes.STRING(50), allowNull: true },
     village: { type: DataTypes.STRING, allowNull: true },
     residenceState: { type: DataTypes.STRING, allowNull: true },
     city: { type: DataTypes.STRING, allowNull: true },

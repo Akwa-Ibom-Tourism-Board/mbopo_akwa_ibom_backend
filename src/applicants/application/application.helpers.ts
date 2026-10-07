@@ -23,6 +23,7 @@ export function toSentenceCase(value: string): string {
 const SENTENCE_CASE_FIELDS = [
   "middleName",
   "nextOfKin",
+  "nextOfKinRelationship",
   "village",
   "city",
   "address",
