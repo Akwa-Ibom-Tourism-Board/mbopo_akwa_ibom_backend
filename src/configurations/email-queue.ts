@@ -13,10 +13,17 @@ if (!configurations.REDIS_URL) {
 
 const emailQueue = new Queue("email queue", configurations.REDIS_URL!, {
   settings: {
-    // Bull promotes delayed jobs with a timer and falls back to polling at
-    // this interval (default 5s). Polling every second keeps a "5 second"
-    // delay from stretching to ~10s when the timer is missed.
-    guardInterval: 1_000,
+    // Bull promotes delayed jobs with a precise per-job timer; this guard
+    // interval is only the fallback safety net for when that timer is
+    // missed (process restart, clock drift) — see updateDelayTimer() in
+    // bull/lib/queue.js. It re-arms itself every `guardInterval` even with
+    // zero jobs queued, which at the previous 1s value meant Bull polled
+    // Redis once a second forever — ~2.6M commands/month from idle alone,
+    // already past Upstash's 500k/month free-tier cap before a single
+    // applicant signs up. 30s keeps the fallback meaningfully prompt (the
+    // normal case still fires exactly on time) while cutting that idle
+    // cost to ~86k/month.
+    guardInterval: 30_000,
   },
 });
 
