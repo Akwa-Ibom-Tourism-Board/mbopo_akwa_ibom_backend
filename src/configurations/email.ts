@@ -1,5 +1,13 @@
 // HTML templating only. Delivery lives in email-sender.ts.
 
+// Hosted once on Cloudinary (not bundled/inlined — no email client renders
+// inline base64 reliably, especially Outlook) under a stable public_id
+// that's never overwritten by any applicant/candidate upload path. PNG,
+// not the site's own WebP source, for broad email-client support.
+// w_400 serves a 2x-retina-sized file for the ~200px display width below.
+const EMAIL_LOGO_URL =
+  "https://res.cloudinary.com/p7ohgrd9/image/upload/w_400,q_auto/v1793276151/mbopo/shared/email-logo.png";
+
 /**
  * Wraps a message (and optional action button) in the branded email shell
  * used by every outgoing email.
@@ -52,6 +60,13 @@ export const wrapEmailHtml = (
                 bgcolor="#e77818"
                 style="padding: 30px; color: #ffffff"
               >
+                <img
+                  src="${EMAIL_LOGO_URL}"
+                  alt="Mbopo Akwa Ibom"
+                  width="200"
+                  height="53"
+                  style="display: block; margin: 0 auto 12px; border: 0; max-width: 200px; height: auto"
+                />
                 <h1 style="margin: 0; font-size: 20px">Mbopo Akwa Ibom</h1>
               </td>
             </tr>
