@@ -1,61 +1,8 @@
 import { User } from "../../auth/User";
 import { Application } from "../../applicants/application/Application";
+import { senatorialDistrictOf } from "../../configurations/constants";
 import { can, type Capability } from "../rbac";
 import { AdminRole } from "../users/AdminUser";
-
-// Cross-checked against Wikipedia's Akwa Ibom senatorial district pages and
-// a 2015 INEC-linked LGA directory — same source/reasoning already used for
-// mbopo_akwa_ibom_admin_frontend's BUILD_ME.md §8. Names must match
-// configurations/constants.ts's AKWA_IBOM_LGAS exactly, character for
-// character, or a candidate silently falls through senatorialDistrict as
-// undefined.
-const SENATORIAL_DISTRICTS: Record<string, readonly string[]> = {
-  "Akwa Ibom North-East": [
-    "Etinan",
-    "Ibesikpo Asutan",
-    "Ibiono Ibom",
-    "Itu",
-    "Nsit Atai",
-    "Nsit Ibom",
-    "Nsit Ubium",
-    "Uruan",
-    "Uyo",
-  ],
-  "Akwa Ibom North-West": [
-    "Abak",
-    "Essien Udim",
-    "Etim Ekpo",
-    "Ika",
-    "Ikono",
-    "Ikot Ekpene",
-    "Ini",
-    "Obot Akara",
-    "Oruk Anam",
-    "Ukanafun",
-  ],
-  "Akwa Ibom South": [
-    "Eastern Obolo",
-    "Eket",
-    "Esit Eket",
-    "Ibeno",
-    "Ikot Abasi",
-    "Mbo",
-    "Mkpat Enin",
-    "Okobo",
-    "Onna",
-    "Oron",
-    "Udung Uko",
-    "Urue-Offong/Oruko",
-  ],
-};
-
-export function senatorialDistrictOf(lga: string | null | undefined): string | undefined {
-  if (!lga) return undefined;
-  for (const [district, lgas] of Object.entries(SENATORIAL_DISTRICTS)) {
-    if (lgas.includes(lga)) return district;
-  }
-  return undefined;
-}
 
 /**
  * The one place that decides how much of a contestant's record a given

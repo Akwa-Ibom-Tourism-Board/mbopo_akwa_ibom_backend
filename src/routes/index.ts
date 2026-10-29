@@ -11,6 +11,7 @@ import adminApplicantsRouter from "../admin/applicants/applicants.routes";
 import adminContestantsRouter from "../admin/contestants/contestants.routes";
 import adminJudgingRouter from "../admin/judging/judging.routes";
 import adminStagesRouter from "../admin/stages/stages.routes";
+import publicRouter from "../public/public.routes";
 
 const rootRouter = Router();
 
@@ -26,5 +27,6 @@ rootRouter.use("/admin/applicants", adminApplicantsRouter);
 rootRouter.use("/admin/contestants", adminContestantsRouter);
 rootRouter.use("/admin/judging", adminJudgingRouter);
 rootRouter.use("/admin/stages", adminStagesRouter);
+rootRouter.use("/public", publicRouter);
 
 export default rootRouter;

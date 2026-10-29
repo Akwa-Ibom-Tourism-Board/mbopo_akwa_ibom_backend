@@ -86,6 +86,11 @@ export interface ApplicationAttributes {
   additionalPhotos?: string[] | null;
   additionalVideos?: { title: string; youtubeUrl: string }[] | null;
 
+  // Public voting (Stage 6) — credited only via POST /public/votes, and
+  // only while stage === "grand_finale". Payment behind that endpoint is
+  // still simulated on the frontend; see cast-vote.service.ts's own note.
+  voteCount: number;
+
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -207,6 +212,8 @@ Application.init(
     bio: { type: DataTypes.TEXT, allowNull: true },
     additionalPhotos: { type: DataTypes.JSONB, allowNull: true, defaultValue: [] },
     additionalVideos: { type: DataTypes.JSONB, allowNull: true, defaultValue: [] },
+
+    voteCount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   },
   {
     sequelize: database,
