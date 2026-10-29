@@ -3,6 +3,7 @@ import "../auth/User";
 import "../applicants/application/Application";
 import "../notifications/Notification";
 import "../messages/Message";
+import "../admin/users/AdminUser";
 
 export async function syncDatabases() {
   console.log("📥 Registering models...");

@@ -1,7 +1,11 @@
 import jwt from "jsonwebtoken";
 import configurations from ".";
 
-export type TokenType = "access" | "refresh";
+// "admin_access"/"admin_refresh" are a distinct pair from the applicant
+// "access"/"refresh" — verifyToken's expectedType check means a token
+// minted for a staff AdminUser session can never be replayed against an
+// applicant route, or vice versa, even though both share this same secret.
+export type TokenType = "access" | "refresh" | "admin_access" | "admin_refresh";
 
 export interface TokenPayload {
   id: string;

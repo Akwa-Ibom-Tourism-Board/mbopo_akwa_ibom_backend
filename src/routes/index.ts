@@ -5,6 +5,8 @@ import applicationRouter from "../applicants/application/application.routes";
 import uploadsRouter from "../uploads/uploads.routes";
 import messagesRouter from "../messages/messages.routes";
 import notificationsRouter from "../notifications/notifications.routes";
+import adminAuthRouter from "../admin/auth/admin-auth.routes";
+import adminUsersRouter from "../admin/users/admin-users.routes";
 
 const rootRouter = Router();
 
@@ -14,5 +16,7 @@ rootRouter.use("/applicants/application", applicationRouter);
 rootRouter.use("/uploads", uploadsRouter);
 rootRouter.use("/messages", messagesRouter);
 rootRouter.use("/notifications", notificationsRouter);
+rootRouter.use("/admin/auth", adminAuthRouter);
+rootRouter.use("/admin/users", adminUsersRouter);
 
 export default rootRouter;
