@@ -28,9 +28,9 @@ export interface VerifyIdentityPayload {
 const evaluateEligibility = (ninResult: NINVerificationResult, dateOfBirth: string): string[] => {
   const reasons: string[] = [];
 
-  if (ninResult.gender?.toLowerCase() !== Gender.Female) {
-    reasons.push("Applicants must be female");
-  }
+  // if (ninResult.gender?.toLowerCase() !== Gender.Female) {
+  //   reasons.push("Applicants must be female");
+  // }
   if (!isEligibleAge(dateOfBirth)) {
     reasons.push("Applicants must be between 22 and 27 years old");
   }

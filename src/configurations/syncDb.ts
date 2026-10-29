@@ -4,6 +4,8 @@ import "../applicants/application/Application";
 import "../notifications/Notification";
 import "../messages/Message";
 import "../admin/users/AdminUser";
+import "../admin/judging/JudgeScore";
+import "../admin/stages/PhaseState";
 
 export async function syncDatabases() {
   console.log("📥 Registering models...");

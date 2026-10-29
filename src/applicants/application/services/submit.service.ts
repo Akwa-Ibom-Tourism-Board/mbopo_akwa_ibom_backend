@@ -4,7 +4,12 @@ import errorUtilities from "../../../configurations/error-handler";
 import responseUtilities from "../../../configurations/response";
 import { StatusCodes } from "../../../configurations/statusCodes";
 import { database } from "../../../configurations/database";
-import { Application, ApplicationStatus } from "../Application";
+import {
+  Application,
+  ApplicationStatus,
+  CandidateStage,
+  CandidateJudgingStatus,
+} from "../Application";
 import { findApplicationForUpdate, normalizeDraftPayload } from "../application.helpers";
 import verifyVIN from "../../../configurations/vin-provider";
 import { namesMatch } from "../../../auth/name-match";
@@ -151,6 +156,11 @@ const finalizeSubmission = (applicantId: string, vin: string, nameMatches: boole
         status: ApplicationStatus.Submitted,
         referenceCode,
         submittedAt: new Date(),
+        // Enters judging at the first stage/phase, as a live candidate.
+        // See CandidateStage/CandidateJudgingStatus in Application.ts.
+        stage: CandidateStage.LgaSelection,
+        phase: "lga",
+        candidateStatus: CandidateJudgingStatus.Active,
       },
       { where: { applicantId, status: ApplicationStatus.Draft }, transaction },
     );

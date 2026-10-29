@@ -7,6 +7,26 @@ export enum ApplicationStatus {
   Submitted = "submitted",
 }
 
+// Mirrors mbopo_akwa_ibom_admin_frontend's src/lib/phases.ts CandidateStage
+// exactly. Set null -> "lga_selection" the moment submit.service.ts flips
+// `status` to Submitted (see submitJudgingDefaults in application.helpers.ts).
+export enum CandidateStage {
+  LgaSelection = "lga_selection",
+  SenatorialSelection = "senatorial_selection",
+  GrandFinale = "grand_finale",
+}
+
+// Mirrors the frontend's CandidateStatus exactly. A separate axis from
+// `status` (draft/submitted) above — this only starts meaning anything
+// once an application is submitted.
+export enum CandidateJudgingStatus {
+  Active = "active",
+  Advanced = "advanced",
+  Eliminated = "eliminated",
+  Disqualified = "disqualified",
+  Winner = "winner",
+}
+
 export interface ApplicationAttributes {
   id: string;
   applicantId: string;
@@ -50,6 +70,15 @@ export interface ApplicationAttributes {
   status: ApplicationStatus;
   referenceCode?: string | null;
   submittedAt?: Date | null;
+
+  // Judging state — see CandidateStage/CandidateJudgingStatus above.
+  stage?: CandidateStage | null;
+  phase?: string | null;
+  candidateStatus?: CandidateJudgingStatus | null;
+  disqualificationReason?: string | null;
+  eliminatedAtPhase?: string | null;
+  disqualifiedAtPhase?: string | null;
+
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -152,6 +181,21 @@ Application.init(
     },
 
     submittedAt: { type: DataTypes.DATE, allowNull: true },
+
+    stage: {
+      type: DataTypes.ENUM(...Object.values(CandidateStage)),
+      allowNull: true,
+      validate: { isIn: [Object.values(CandidateStage)] },
+    },
+    phase: { type: DataTypes.STRING(16), allowNull: true },
+    candidateStatus: {
+      type: DataTypes.ENUM(...Object.values(CandidateJudgingStatus)),
+      allowNull: true,
+      validate: { isIn: [Object.values(CandidateJudgingStatus)] },
+    },
+    disqualificationReason: { type: DataTypes.TEXT, allowNull: true },
+    eliminatedAtPhase: { type: DataTypes.STRING(16), allowNull: true },
+    disqualifiedAtPhase: { type: DataTypes.STRING(16), allowNull: true },
   },
   {
     sequelize: database,
