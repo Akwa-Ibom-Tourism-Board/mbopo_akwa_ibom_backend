@@ -7,6 +7,8 @@ import messagesRouter from "../messages/messages.routes";
 import notificationsRouter from "../notifications/notifications.routes";
 import adminAuthRouter from "../admin/auth/admin-auth.routes";
 import adminUsersRouter from "../admin/users/admin-users.routes";
+import adminApplicantsRouter from "../admin/applicants/applicants.routes";
+import adminContestantsRouter from "../admin/contestants/contestants.routes";
 
 const rootRouter = Router();
 
@@ -18,5 +20,7 @@ rootRouter.use("/messages", messagesRouter);
 rootRouter.use("/notifications", notificationsRouter);
 rootRouter.use("/admin/auth", adminAuthRouter);
 rootRouter.use("/admin/users", adminUsersRouter);
+rootRouter.use("/admin/applicants", adminApplicantsRouter);
+rootRouter.use("/admin/contestants", adminContestantsRouter);
 
 export default rootRouter;

@@ -73,6 +73,18 @@ const authenticate = async (
         });
       }
 
+      // Deliberately not checked on the common (non-refresh) path above —
+      // that path stays DB-free by design (see login.service.ts's
+      // issueSession comment). A disabled applicant's current access token
+      // still works until it naturally expires or they need to refresh;
+      // this is where disabling actually takes effect.
+      if (!user.get("active")) {
+        return response.status(403).json({
+          status: "error",
+          message: "This account has been disabled. Please contact support.",
+        });
+      }
+
       const tokenPayload: TokenPayload = { id: refreshVerifiedUser.id };
 
       const newAccessToken = jwtUtilities.signToken(

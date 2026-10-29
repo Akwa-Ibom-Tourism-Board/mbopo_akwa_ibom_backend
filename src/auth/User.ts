@@ -33,6 +33,10 @@ export interface UserAttributes {
   vinVerificationFailedReason?: string | null;
   avatarUrl?: string | null;
   avatarPublicId?: string | null;
+  // Set by Super Admin/Admin from the Applicants admin view — a disabled
+  // applicant can't log in. Unrelated to AdminUser.active, which is the
+  // same idea for staff accounts.
+  active: boolean;
   emailVerified: boolean;
   emailOtpHash?: string | null;
   emailOtpExpiresAt?: Date | null;
@@ -187,6 +191,12 @@ User.init(
     avatarPublicId: {
       type: DataTypes.TEXT,
       allowNull: true,
+    },
+
+    active: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
     },
 
     emailVerified: {

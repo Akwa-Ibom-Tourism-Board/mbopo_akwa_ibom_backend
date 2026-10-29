@@ -47,6 +47,13 @@ const loginService = errorUtilities.withServiceErrorHandling(
       );
     }
 
+    if (!user.get("active")) {
+      throw errorUtilities.createError(
+        "This account has been disabled. Please contact support.",
+        StatusCodes.FORBIDDEN,
+      );
+    }
+
     const session = await issueSession(user);
 
     return responseUtilities.handleServicesResponse(StatusCodes.OK, "Login successful", session);

@@ -46,8 +46,6 @@ const registerService = errorUtilities.withServiceErrorHandling(
       throw error;
     }
 
-    console.log('otp', otp)
-
     const template = emailVerificationOtpTemplate(otp);
     await queueEmail({
       to: email,
