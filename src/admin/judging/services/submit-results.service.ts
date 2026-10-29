@@ -1,7 +1,11 @@
 import errorUtilities from "../../../configurations/error-handler";
 import responseUtilities from "../../../configurations/response";
 import { StatusCodes } from "../../../configurations/statusCodes";
-import { CandidateJudgingStatus } from "../../../applicants/application/Application";
+import { Application, CandidateJudgingStatus } from "../../../applicants/application/Application";
+import { User } from "../../../auth/User";
+import { queueEmail } from "../../../configurations/email-queue";
+import { candidateAdvancedTemplate } from "../../../applicants/application/emailTemplates/candidateAdvanced";
+import { candidateWinnerTemplate } from "../../../applicants/application/emailTemplates/candidateWinner";
 import { requireOpenPhase } from "../../helpers/phase-state.helpers";
 import { getJudgingPool, applyJudgingDecision } from "../../helpers/candidate-judging.helpers";
 import { buildFinalizeStatus } from "../../helpers/leaderboard.helpers";
@@ -9,12 +13,57 @@ import { PhaseState } from "../../stages/PhaseState";
 import { can, type Capability } from "../../rbac";
 import { AdminRole } from "../../users/AdminUser";
 import { PHASE_QUOTA } from "../stages.config";
-import type { PhaseId } from "../phases.config";
+import { getPhaseDef, nextPhaseId, type PhaseId } from "../phases.config";
 
 export interface SubmitResultsResult {
   through: number;
   eliminated: number;
 }
+
+// Short phrase for the advancement email's "you have advanced to ___" line.
+// "senatorial" and "gf-r1" get the stage-level phrasing (that's the
+// meaningful news — a new stage opened for them); the other Grand Finale
+// rounds get their own round label.
+const describeDestination = (phase: PhaseId): string => {
+  if (phase === "senatorial") return "Senatorial District Selection";
+  if (phase === "gf-r1") return "the Grand Finale";
+  return `Grand Finale ${getPhaseDef(phase).label}`;
+};
+
+// Best-effort, like every other email call site in this codebase (see
+// application/services/submit.service.ts) — never allowed to fail the
+// results submission that triggered it. Fires only for "advanced"/"winner";
+// elimination and disqualification queue nothing at all, by design.
+const notifyAdvancement = async (
+  applications: Application[],
+  finalRound: boolean,
+  nextPhase: PhaseId | undefined,
+) => {
+  await Promise.all(
+    applications.map(async (application) => {
+      try {
+        const user = await User.findByPk(application.get("applicantId") as string, {
+          attributes: ["email", "firstName"],
+        });
+        if (!user) return;
+
+        const firstName = (user.get("firstName") as string | null) ?? null;
+        const template =
+          finalRound || !nextPhase
+            ? candidateWinnerTemplate(firstName)
+            : candidateAdvancedTemplate(firstName, describeDestination(nextPhase));
+
+        await queueEmail({
+          to: user.get("email") as string,
+          subject: template.subject,
+          htmlBody: template.htmlBody,
+        });
+      } catch (error: any) {
+        console.error("Failed to queue advancement email:", error.message);
+      }
+    }),
+  );
+};
 
 /**
  * Choose who goes through. The Head Judge can do it once every judge has
@@ -101,11 +150,10 @@ const submitResultsService = errorUtilities.withServiceErrorHandling(
         { candidateStatus: CandidateJudgingStatus.Eliminated, eliminatedAtPhase: phase },
       );
     }
-    // Stage-advancement email notifications for the "advanced"/"winner"
-    // transition below are wired up in a later stage — none here yet.
-    await applyJudgingDecision([...passed], {
+    const advanced = await applyJudgingDecision([...passed], {
       candidateStatus: finalRound ? CandidateJudgingStatus.Winner : CandidateJudgingStatus.Advanced,
     });
+    await notifyAdvancement(advanced, finalRound, nextPhaseId(phase));
 
     const [state] = await PhaseState.findOrCreate({ where: { phaseId: phase }, defaults: { phaseId: phase } as any });
     await state.update({
