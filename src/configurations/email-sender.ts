@@ -1,4 +1,3 @@
-import nodemailer from "nodemailer";
 import { SendMailClient } from "zeptomail";
 import configurations from ".";
 
@@ -13,10 +12,18 @@ export interface EmailPayload {
  * sendEmail() and nothing else, so changing provider means editing this file
  * only — keep the signature and throw on failure so the queue can retry.
  *
- * Provider: ZeptoMail, over two transports chosen by NODE_ENV:
- *  - production  -> HTTPS API (port 443). Render blocks outbound SMTP.
- *  - development -> SMTP (port 465), which works from a normal machine.
- * Either way ZEPTO_EMAIL_FROM must be an address on the verified domain.
+ * Provider: ZeptoMail, always over its HTTPS API (port 443) — never SMTP.
+ * This used to branch by NODE_ENV (API in production since Render blocks
+ * outbound SMTP; SMTP on port 465 in development "since that works from a
+ * normal machine"). That assumption doesn't hold everywhere: plenty of
+ * ISPs/networks block outbound 465 too (confirmed here via `nc -z
+ * smtp.zeptomail.com 465` timing out while 587 and 443 both connect fine),
+ * so a developer could register locally and have every email silently
+ * queue-then-fail with ETIMEDOUT. The API path is already proven in
+ * production and only needs port 443, which is essentially always open —
+ * using it everywhere removes this whole class of "whose network blocks
+ * what port" bug rather than just relocating it.
+ * ZEPTO_EMAIL_FROM must be an address on the verified domain.
  */
 interface Transport {
   send: (payload: EmailPayload) => Promise<void>;
@@ -25,35 +32,6 @@ interface Transport {
 }
 
 const FROM_NAME = "Mbopo Akwa Ibom";
-
-const buildSmtp = (): Transport => {
-  // Pooled: keeps the SMTP connection open between emails, so each send
-  // skips the connect + TLS + auth round trips.
-  const transport = nodemailer.createTransport({
-    pool: true,
-    host: configurations.ZEPTOMAIL_HOST || "smtp.zeptomail.com",
-    port: 465,
-    secure: true,
-    auth: {
-      user: "emailapikey",
-      pass: configurations.ZEPTOMAIL_TOKEN!,
-    },
-  });
-
-  return {
-    send: async ({ to, subject, htmlBody }) => {
-      await transport.sendMail({
-        from: `${FROM_NAME} <${configurations.ZEPTO_EMAIL_FROM}>`,
-        to,
-        subject,
-        html: htmlBody,
-      });
-    },
-    warmUp: async () => {
-      await transport.verify();
-    },
-  };
-};
 
 // ZeptoMail's official SDK. The token is the Send Mail token from the Mail
 // Agent's API tab and must carry the "Zoho-enczapikey " prefix. Created
@@ -93,12 +71,11 @@ const buildApi = (): Transport => {
   };
 };
 
-// Lazy, so production never opens an SMTP pool and nothing is built until
-// the first send.
+// Lazy, so nothing is built until the first send.
 let transport: Transport | undefined;
 const getTransport = (): Transport => {
   if (!transport) {
-    transport = process.env.NODE_ENV === "production" ? buildApi() : buildSmtp();
+    transport = buildApi();
   }
   return transport;
 };
