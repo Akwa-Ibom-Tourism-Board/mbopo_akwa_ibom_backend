@@ -26,10 +26,17 @@ CREATE TABLE IF NOT EXISTS "JudgeScore" (
   "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Checked against pg_indexes, not pg_constraint: the JudgeScore model
+-- declares this uniqueness as a plain unique index (see JudgeScore.ts),
+-- which database.sync() may have already created under this exact name
+-- (e.g. on a Render deploy that booted before this migration ran by hand)
+-- — a standalone unique index never shows up in pg_constraint, so that
+-- check alone would miss it and collide on the constraint's own backing
+-- index.
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'JudgeScore_judge_application_round_key'
+    SELECT 1 FROM pg_indexes WHERE indexname = 'JudgeScore_judge_application_round_key'
   ) THEN
     ALTER TABLE "JudgeScore" ADD CONSTRAINT "JudgeScore_judge_application_round_key"
       UNIQUE ("judgeId", "applicationId", "roundId");

@@ -1,7 +1,7 @@
 import errorUtilities from "../../configurations/error-handler";
 import responseUtilities from "../../configurations/response";
 import { StatusCodes } from "../../configurations/statusCodes";
-import { signUpload, UploadField } from "../../configurations/cloudinary";
+import { signUpload, slugify, UploadField } from "../../configurations/cloudinary";
 import { User } from "../../auth/User";
 import { Application, ApplicationStatus } from "../../applicants/application/Application";
 import {
@@ -15,15 +15,22 @@ import {
 
 const cloudinarySignatureService = errorUtilities.withServiceErrorHandling(
   async (applicantId: string, field: UploadField) => {
+    // Fetched unconditionally (not just on the branches that used to need
+    // it) so every field can carry the applicant's name into its public_id
+    // for readability — see configurations/cloudinary.ts's buildPublicId.
+    const user = await User.findByPk(applicantId);
+    if (!user) {
+      throw errorUtilities.createError("User not found", StatusCodes.NOT_FOUND);
+    }
+    const nameSlug = slugify(
+      [user.get("firstName"), user.get("lastName")].filter(Boolean).join(" "),
+    );
+
     // Fail-fast gate so a client never wastes an upload. It's advisory:
     // the save endpoint re-checks everything under a row lock.
     if (field === "avatar") {
       // Never issue a signature that could overwrite the NIN-sourced photo
       // sitting at the deterministic avatar public_id.
-      const user = await User.findByPk(applicantId, { attributes: ["id", "identityVerified"] });
-      if (!user) {
-        throw errorUtilities.createError("User not found", StatusCodes.NOT_FOUND);
-      }
       if (user.get("identityVerified")) {
         throw errorUtilities.createError(
           "Your profile photo is set from your verified NIN and can't be changed",
@@ -43,18 +50,15 @@ const cloudinarySignatureService = errorUtilities.withServiceErrorHandling(
         ) {
           throw errorUtilities.createError(VIDEO_LOCKED_ERROR, StatusCodes.CONFLICT);
         }
-      } else {
-        const applicant = await User.findByPk(applicantId);
-        if (!applicant?.get("identityVerified")) {
-          throw errorUtilities.createError(UNVERIFIED_ERROR, StatusCodes.FORBIDDEN);
-        }
+      } else if (!user.get("identityVerified")) {
+        throw errorUtilities.createError(UNVERIFIED_ERROR, StatusCodes.FORBIDDEN);
       }
     }
 
     return responseUtilities.handleServicesResponse(
       StatusCodes.OK,
       "Signature issued",
-      signUpload(applicantId, field),
+      signUpload(applicantId, field, nameSlug),
     );
   },
 );

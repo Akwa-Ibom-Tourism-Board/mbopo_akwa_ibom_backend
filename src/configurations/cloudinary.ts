@@ -35,12 +35,37 @@ const requireCredentials = () => {
 };
 
 /**
+ * Turns a candidate's name into a short, URL/filename-safe slug, so their
+ * Cloudinary assets are human-readable in the dashboard rather than bare
+ * UUIDs. Purely cosmetic — see assertValidUploadReference's comment for why
+ * it's never the thing that's actually verified.
+ */
+export function slugify(name: string | null | undefined): string {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+/**
  * Single source of truth for an asset's deterministic public_id — used by
  * the signature endpoint to issue it and by the save endpoints to verify it.
+ * `nameSlug`, when given, is inserted before the field name purely for
+ * readability (e.g. "mary-jane-okon-fullImage") — it is never required to
+ * reconstruct the exact same id later (see assertValidUploadReference).
  */
-export function buildPublicId(applicantId: string, field: UploadField): string {
+export function buildPublicId(
+  applicantId: string,
+  field: UploadField,
+  nameSlug?: string,
+): string {
   const scope = field === "avatar" ? "users" : "applications";
-  return `mbopo/${process.env.NODE_ENV}/${scope}/${applicantId}/${field}`;
+  const base = `mbopo/${process.env.NODE_ENV}/${scope}/${applicantId}`;
+  return nameSlug ? `${base}/${nameSlug}-${field}` : `${base}/${field}`;
 }
 
 export const resourceTypeFor = (field: UploadField): CloudinaryResourceType =>
@@ -97,9 +122,13 @@ export interface SignedUpload {
   uploadParams: Record<string, string | number | boolean>;
 }
 
-export function signUpload(applicantId: string, field: UploadField): SignedUpload {
+export function signUpload(
+  applicantId: string,
+  field: UploadField,
+  nameSlug?: string,
+): SignedUpload {
   const { cloudName, apiKey, apiSecret } = requireCredentials();
-  const publicId = buildPublicId(applicantId, field);
+  const publicId = buildPublicId(applicantId, field, nameSlug);
   const timestamp = Math.floor(Date.now() / 1000);
   const uploadParams = buildUploadParams(publicId, field);
 
@@ -121,10 +150,15 @@ export function signUpload(applicantId: string, field: UploadField): SignedUploa
 }
 
 /**
- * Integrity check for client-reported uploads: the publicId must be the exact
- * one we'd have issued, and the URL must be a Cloudinary delivery URL of the
- * right resource type in *our* cloud pointing at that publicId — otherwise a
- * client could store an arbitrary URL.
+ * Integrity check for client-reported uploads: the publicId must match the
+ * applicantId/field skeleton we'd have issued, and the URL must be a
+ * Cloudinary delivery URL of the right resource type in *our* cloud pointing
+ * at that publicId — otherwise a client could store an arbitrary URL. The
+ * optional name-slug segment in the middle (see buildPublicId) is matched
+ * structurally, not byte-for-byte: it's cosmetic, computed fresh from
+ * whatever the candidate's name happened to be at signing time, and
+ * shouldn't become a false rejection if nothing else about the request
+ * changed.
  */
 export function assertValidUploadReference(
   applicantId: string,
@@ -135,7 +169,12 @@ export function assertValidUploadReference(
   const invalid = () =>
     errorUtilities.createError("Invalid upload reference", StatusCodes.BAD_REQUEST);
 
-  if (publicId !== buildPublicId(applicantId, field)) throw invalid();
+  const exact = buildPublicId(applicantId, field);
+  const skeletonPrefix = exact.slice(0, exact.lastIndexOf("/") + 1);
+  const matchesSkeleton =
+    publicId === exact ||
+    (publicId.startsWith(skeletonPrefix) && publicId.endsWith(`-${field}`));
+  if (!matchesSkeleton) throw invalid();
 
   const { cloudName } = requireCredentials();
   let parsed: URL;
@@ -202,5 +241,87 @@ export async function uploadSelfieToAvatar(
   } catch (error: any) {
     console.error("Selfie avatar upload failed:", error.message);
     throw failed("Could not save your photo. Please retake it and try again.");
+  }
+}
+
+// ── Media-managed candidate profile photos (admin/contestants Stage 4) ──
+//
+// A separate scope ("candidates", not "applications") because these are
+// staff-added, not part of the applicant's own submission, and there can be
+// several of them per candidate — hence the index. Video stays a plain
+// YouTube URL (see Application.additionalVideos); there is no Cloudinary
+// video path here.
+
+export function buildCandidatePhotoPublicId(
+  applicantId: string,
+  nameSlug: string | undefined,
+  index: number,
+): string {
+  const base = `mbopo/${process.env.NODE_ENV}/candidates/${applicantId}`;
+  return nameSlug ? `${base}/${nameSlug}-photo-${index}` : `${base}/photo-${index}`;
+}
+
+export function signCandidatePhotoUpload(
+  applicantId: string,
+  nameSlug: string | undefined,
+  index: number,
+): SignedUpload {
+  const { cloudName, apiKey, apiSecret } = requireCredentials();
+  const publicId = buildCandidatePhotoPublicId(applicantId, nameSlug, index);
+  const timestamp = Math.floor(Date.now() / 1000);
+  const uploadParams: Record<string, string | number | boolean> = {
+    public_id: publicId,
+    overwrite: true,
+    invalidate: true,
+    allowed_formats: "jpg,jpeg,png",
+    transformation: "c_limit,w_1600,h_1600,q_auto",
+  };
+
+  const signature = cloudinary.utils.api_sign_request(
+    { ...uploadParams, timestamp },
+    apiSecret,
+  );
+
+  return {
+    cloudName,
+    apiKey,
+    timestamp,
+    signature,
+    publicId,
+    overwrite: true,
+    resourceType: "image",
+    uploadParams,
+  };
+}
+
+/**
+ * Validates a candidate-photo URL reported back from the browser (used when
+ * Media saves `additionalPhotos`, which stores URLs only, no public_id) —
+ * confirms it's actually a Cloudinary delivery URL, in our cloud, under this
+ * exact candidate's own "candidates/{applicantId}/" folder, so one
+ * candidate's Media editor can't point another candidate's profile at an
+ * arbitrary asset.
+ */
+export function assertValidCandidatePhotoUrl(applicantId: string, url: string): void {
+  const invalid = () =>
+    errorUtilities.createError("Invalid photo reference", StatusCodes.BAD_REQUEST);
+
+  const { cloudName } = requireCredentials();
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw invalid();
+  }
+
+  const prefix = `/${cloudName}/image/upload/`;
+  const requiredSegment = `/candidates/${applicantId}/`;
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.hostname !== "res.cloudinary.com" ||
+    !parsed.pathname.startsWith(prefix) ||
+    !decodeURIComponent(parsed.pathname).includes(requiredSegment)
+  ) {
+    throw invalid();
   }
 }

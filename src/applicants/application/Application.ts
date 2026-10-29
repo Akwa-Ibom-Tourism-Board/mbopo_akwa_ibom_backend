@@ -79,6 +79,13 @@ export interface ApplicationAttributes {
   eliminatedAtPhase?: string | null;
   disqualifiedAtPhase?: string | null;
 
+  // Public profile content — Media-managed (admin/contestants Stage 4),
+  // shown on the public voting site once the candidate is visible there.
+  // Never touched by the applicant's own registration flow.
+  bio?: string | null;
+  additionalPhotos?: string[] | null;
+  additionalVideos?: { title: string; youtubeUrl: string }[] | null;
+
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -196,6 +203,10 @@ Application.init(
     disqualificationReason: { type: DataTypes.TEXT, allowNull: true },
     eliminatedAtPhase: { type: DataTypes.STRING(16), allowNull: true },
     disqualifiedAtPhase: { type: DataTypes.STRING(16), allowNull: true },
+
+    bio: { type: DataTypes.TEXT, allowNull: true },
+    additionalPhotos: { type: DataTypes.JSONB, allowNull: true, defaultValue: [] },
+    additionalVideos: { type: DataTypes.JSONB, allowNull: true, defaultValue: [] },
   },
   {
     sequelize: database,

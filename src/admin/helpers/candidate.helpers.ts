@@ -87,6 +87,14 @@ export function serializeCandidateForViewer(
     status: json.status,
     referenceCode: json.referenceCode ?? null,
     submittedAt: json.submittedAt ?? null,
+    // Public-profile content lives in the base tier (not gated behind
+    // candidates.viewDetails) because Media — who only ever holds
+    // candidates.view — is exactly the role that manages it. It's also
+    // what the public voting site eventually shows, so there's nothing
+    // sensitive in it the way the rest of the application is.
+    bio: json.bio ?? null,
+    additionalPhotos: json.additionalPhotos ?? [],
+    additionalVideos: json.additionalVideos ?? [],
   };
 
   const hasCapability = (capability: Capability) => can(viewerRole, capability);
@@ -121,9 +129,6 @@ export function serializeCandidateForViewer(
     fullImageUrl: json.fullImageUrl ?? null,
     fullImageUrl2: json.fullImageUrl2 ?? null,
     videoPitchUrl: json.videoPitchUrl ?? null,
-    bio: json.bio ?? null,
-    additionalPhotos: json.additionalPhotos ?? [],
-    additionalVideos: json.additionalVideos ?? [],
   };
 
   if (!hasCapability("candidates.viewIdentity")) {

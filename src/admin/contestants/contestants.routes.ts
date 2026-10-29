@@ -1,11 +1,14 @@
 import express from "express";
 import Joi from "joi";
 import { validateQuery, validateParams } from "../../configurations/validate";
+import validate from "../../configurations/validate";
 import authenticateAdmin from "../middleware/authenticate-admin";
 import requireCapability from "../middleware/require-capability";
 import { AKWA_IBOM_LGAS } from "../../configurations/constants";
 import list from "./controllers/list";
 import getOne from "./controllers/get-one";
+import photoSignature from "./controllers/photo-signature";
+import updateProfile from "./controllers/update-profile";
 
 const router = express.Router();
 
@@ -19,6 +22,26 @@ const listQuerySchema = Joi.object({
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(200).optional(),
 });
+
+const YOUTUBE_URL_PATTERN = /^https:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/;
+
+const profileUpdateSchema = Joi.object({
+  bio: Joi.string().trim().max(2000).allow("", null).optional(),
+  additionalPhotos: Joi.array().items(Joi.string().uri()).max(20).optional(),
+  additionalVideos: Joi.array()
+    .items(
+      Joi.object({
+        title: Joi.string().trim().min(1).max(150).required(),
+        youtubeUrl: Joi.string().pattern(YOUTUBE_URL_PATTERN).required().messages({
+          "string.pattern.base": "youtubeUrl must be a youtube.com or youtu.be link",
+        }),
+      }),
+    )
+    .max(20)
+    .optional(),
+})
+  .min(1)
+  .messages({ "object.min": "Provide at least one field to update" });
 
 // "candidates.view" is the broadest of the three candidate capabilities
 // (Media included) — field-level redaction down to what each role may
@@ -37,6 +60,21 @@ router.get(
   requireCapability("candidates.view"),
   validateParams(idParamSchema),
   getOne,
+);
+router.post(
+  "/:id/photo-signature",
+  authenticateAdmin,
+  requireCapability("media.upload"),
+  validateParams(idParamSchema),
+  photoSignature,
+);
+router.patch(
+  "/:id/profile",
+  authenticateAdmin,
+  requireCapability("candidates.editPublicProfile"),
+  validateParams(idParamSchema),
+  validate(profileUpdateSchema),
+  updateProfile,
 );
 
 export default router;
