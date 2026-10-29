@@ -1,3 +1,4 @@
+import path from "path";
 import express, { Request, Response } from "express";
 import helmet from "helmet";
 import cors from "cors";
@@ -65,6 +66,20 @@ app.use(logger(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 // other body is a few KB. Auth + rate limits sit in front of that route.
 app.use(express.json({ limit: "2mb" }));
 app.use(cookieParser());
+
+// Static assets (currently just the logo embedded in outgoing emails — see
+// configurations/email.ts). Helmet's default Cross-Origin-Resource-Policy
+// is "same-origin", which would silently block webmail clients (Gmail/
+// Outlook web, running on a different origin) from loading this image —
+// override it to "cross-origin" for this one directory only.
+app.use(
+  "/assets",
+  express.static(path.join(__dirname, "../public"), {
+    setHeaders: (res) => {
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    },
+  }),
+);
 
 app.use("/api/v1", generalLimiter, rootRouter);
 

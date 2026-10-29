@@ -1,12 +1,16 @@
 // HTML templating only. Delivery lives in email-sender.ts.
 
-// Hosted once on Cloudinary (not bundled/inlined — no email client renders
-// inline base64 reliably, especially Outlook) under a stable public_id
-// that's never overwritten by any applicant/candidate upload path. PNG,
-// not the site's own WebP source, for broad email-client support.
-// w_400 serves a 2x-retina-sized file for the ~200px display width below.
-const EMAIL_LOGO_URL =
-  "https://res.cloudinary.com/p7ohgrd9/image/upload/w_400,q_auto/v1793276151/mbopo/shared/email-logo.png";
+import configurations from ".";
+
+// Served by this server itself (see app.ts's /assets static route,
+// public/mbopo-logo.png) — not Cloudinary. PNG, not the site's own WebP
+// source, for broad email-client support. Already sized ~2x the ~200px
+// display width below for retina screens.
+// Falsy (not configured) in an environment without BACKEND_URL set — the
+// header falls back to text-only rather than emit a broken <img src="">.
+const EMAIL_LOGO_URL = configurations.BACKEND_URL
+  ? `${configurations.BACKEND_URL}/assets/mbopo-logo.png`
+  : null;
 
 /**
  * Wraps a message (and optional action button) in the branded email shell
@@ -57,16 +61,20 @@ export const wrapEmailHtml = (
             <tr>
               <td
                 align="center"
-                bgcolor="#e77818"
+                bgcolor="#003922"
                 style="padding: 30px; color: #ffffff"
               >
-                <img
+                ${
+                  EMAIL_LOGO_URL
+                    ? `<img
                   src="${EMAIL_LOGO_URL}"
                   alt="Mbopo Akwa Ibom"
                   width="200"
                   height="53"
                   style="display: block; margin: 0 auto 12px; border: 0; max-width: 200px; height: auto"
-                />
+                />`
+                    : ""
+                }
                 <h1 style="margin: 0; font-size: 20px">Mbopo Akwa Ibom</h1>
               </td>
             </tr>
