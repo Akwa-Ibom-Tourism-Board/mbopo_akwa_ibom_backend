@@ -34,6 +34,7 @@ export function serializeCandidateForViewer(
     status: json.status,
     referenceCode: json.referenceCode ?? null,
     submittedAt: json.submittedAt ?? null,
+    voteCount: json.voteCount ?? 0,
     // Public-profile content lives in the base tier (not gated behind
     // candidates.viewDetails) because Media — who only ever holds
     // candidates.view — is exactly the role that manages it. It's also
@@ -51,6 +52,19 @@ export function serializeCandidateForViewer(
 
   const details = {
     ...base,
+    // Judging state — gated behind viewDetails (not the base tier) so
+    // Media never sees it, matching the admin frontend's own original
+    // dummy design (Media gets name/bio/photos/videos and nothing about
+    // where a candidate stands in the competition). Judge/Head Judge/
+    // Admin/Super Admin all hold viewDetails, so the judging UI (which
+    // filters candidates by exactly these fields — see inField()/
+    // participantsOf() on both sides) always has them.
+    stage: json.stage ?? null,
+    phase: json.phase ?? null,
+    candidateStatus: json.candidateStatus ?? null,
+    disqualificationReason: json.disqualificationReason ?? null,
+    eliminatedAtPhase: json.eliminatedAtPhase ?? null,
+    disqualifiedAtPhase: json.disqualifiedAtPhase ?? null,
     middleName: userJson.middleName ?? null,
     gender: userJson.gender ?? null,
     dateOfBirth: userJson.dateOfBirth ?? null,

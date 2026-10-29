@@ -11,9 +11,10 @@ import {
   assertSingleActiveHeadJudge,
   mapUniqueConstraintError,
 } from "../../helpers/admin-users.helpers";
+import { recordActivity } from "../../helpers/activity.helpers";
 
 const createAdminUserService = errorUtilities.withServiceErrorHandling(
-  async (actorRole: AdminRole, input: NewAdminUserInput) => {
+  async (actorId: string, actorRole: AdminRole, input: NewAdminUserInput) => {
     assertAssignable(actorRole, input.role);
     await assertSingleActiveHeadJudge(input.role, true);
 
@@ -28,6 +29,12 @@ const createAdminUserService = errorUtilities.withServiceErrorHandling(
         active: true,
         passwordHash: await hashData(temporaryPassword),
       } as any);
+
+      await recordActivity(
+        actorId,
+        "users",
+        `Created ${input.role} account for ${input.firstName} ${input.lastName}`,
+      );
 
       return responseUtilities.handleServicesResponse(StatusCodes.CREATED, "Admin user created", {
         ...serializeAdminUser(admin),

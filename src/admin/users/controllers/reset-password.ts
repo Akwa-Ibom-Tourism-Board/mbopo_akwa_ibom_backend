@@ -5,7 +5,7 @@ import resetAdminUserPasswordService from "../services/reset-password.service";
 
 const resetPassword = errorUtilities.withControllerErrorHandling(
   async (request: Request, response: Response) => {
-    const result = await resetAdminUserPasswordService(request.params.id);
+    const result = await resetAdminUserPasswordService(request.adminUser!.id, request.params.id);
     return responseUtilities.responseHandler(
       response,
       result.message,

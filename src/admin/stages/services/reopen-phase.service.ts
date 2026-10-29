@@ -10,7 +10,8 @@ import { getJudgingPool, applyJudgingDecision } from "../../helpers/candidate-ju
 import { roundsOf } from "../../judging/stages.config";
 import { can } from "../../rbac";
 import { AdminRole } from "../../users/AdminUser";
-import { PHASES, phaseIndex, stageOfPhase, type PhaseId } from "../../judging/phases.config";
+import { PHASES, phaseIndex, phaseTitle, stageOfPhase, type PhaseId } from "../../judging/phases.config";
+import { recordActivity } from "../../helpers/activity.helpers";
 
 /**
  * Reopens a closed stage so scores can be corrected and it can be
@@ -107,6 +108,14 @@ const reopenPhaseService = errorUtilities.withServiceErrorHandling(
       reopenedAt: new Date(),
       reopenedBy: actorId,
     } as any);
+
+    await recordActivity(
+      actorId,
+      "judging",
+      wiped.length
+        ? `Reopened ${phaseTitle(phaseId)} and cleared ${wiped.map(phaseTitle).join(", ")}`
+        : `Reopened ${phaseTitle(phaseId)}`,
+    );
 
     return responseUtilities.handleServicesResponse(StatusCodes.OK, "Stage reopened", { wiped });
   },

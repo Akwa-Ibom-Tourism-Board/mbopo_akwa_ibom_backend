@@ -9,9 +9,10 @@ import {
   assertSingleActiveHeadJudge,
   mapUniqueConstraintError,
 } from "../../helpers/admin-users.helpers";
+import { recordActivity } from "../../helpers/activity.helpers";
 
 const updateAdminUserService = errorUtilities.withServiceErrorHandling(
-  async (actorRole: AdminRole, _actorId: string, targetId: string, patch: AdminUserUpdate) => {
+  async (actorRole: AdminRole, actorId: string, targetId: string, patch: AdminUserUpdate) => {
     const admin = await AdminUser.findByPk(targetId);
     if (!admin) {
       throw errorUtilities.createError("Admin user not found", StatusCodes.NOT_FOUND);
@@ -34,6 +35,12 @@ const updateAdminUserService = errorUtilities.withServiceErrorHandling(
     } catch (error) {
       mapUniqueConstraintError(error);
     }
+
+    await recordActivity(
+      actorId,
+      "users",
+      `Updated the account of ${admin.get("firstName")} ${admin.get("lastName")}`,
+    );
 
     return responseUtilities.handleServicesResponse(
       StatusCodes.OK,

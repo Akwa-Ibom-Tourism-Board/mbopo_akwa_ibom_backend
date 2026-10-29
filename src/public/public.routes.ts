@@ -6,6 +6,9 @@ import { AKWA_IBOM_LGAS } from "../configurations/constants";
 import listCandidates from "./controllers/list-candidates";
 import getCandidate from "./controllers/get-candidate";
 import castVote from "./controllers/cast-vote";
+import getPricing from "./controllers/get-pricing";
+import getNews from "./controllers/get-news";
+import getSponsors from "./controllers/get-sponsors";
 
 const router = express.Router();
 
@@ -30,5 +33,9 @@ router.get("/candidates/:id", validateParams(idParamSchema), getCandidate);
 // lands — has nothing else standing between it and abuse. See
 // cast-vote.service.ts's own note on that gap.
 router.post("/votes", limiter, validate(castVoteSchema), castVote);
+
+router.get("/pricing", getPricing);
+router.get("/news", getNews);
+router.get("/sponsors", getSponsors);
 
 export default router;

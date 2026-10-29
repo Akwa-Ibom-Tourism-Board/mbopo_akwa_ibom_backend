@@ -325,3 +325,83 @@ export function assertValidCandidatePhotoUrl(applicantId: string, url: string): 
     throw invalid();
   }
 }
+
+// ── Voting-content images (news cover/gallery, sponsor logos) ──
+//
+// `id` is client-generated (a fresh UUID minted by the browser before the
+// record exists) so the image can be uploaded and the record created in
+// either order — see admin/voting-content's create services, which accept
+// that same id as the row's primary key.
+
+export type VotingContentScope = "news" | "sponsor";
+
+// `slot` distinguishes multiple images under the same content item (a news
+// post's cover vs. its gallery shots) — without it, every image for one
+// post would share the same public_id and the second upload would silently
+// overwrite the first. The client mints a fresh one (crypto.randomUUID())
+// per individual file it uploads.
+export function buildVotingContentPublicId(
+  scope: VotingContentScope,
+  id: string,
+  slot: string,
+): string {
+  return `mbopo/${process.env.NODE_ENV}/${scope}/${id}/${slot}`;
+}
+
+export function signVotingContentUpload(
+  scope: VotingContentScope,
+  id: string,
+  slot: string,
+): SignedUpload {
+  const { cloudName, apiKey, apiSecret } = requireCredentials();
+  const publicId = buildVotingContentPublicId(scope, id, slot);
+  const timestamp = Math.floor(Date.now() / 1000);
+  const uploadParams: Record<string, string | number | boolean> = {
+    public_id: publicId,
+    overwrite: true,
+    invalidate: true,
+    allowed_formats: "jpg,jpeg,png,webp",
+    transformation: "c_limit,w_1600,h_1600,q_auto",
+  };
+
+  const signature = cloudinary.utils.api_sign_request({ ...uploadParams, timestamp }, apiSecret);
+
+  return {
+    cloudName,
+    apiKey,
+    timestamp,
+    signature,
+    publicId,
+    overwrite: true,
+    resourceType: "image",
+    uploadParams,
+  };
+}
+
+export function assertValidVotingContentUrl(
+  scope: VotingContentScope,
+  id: string,
+  url: string,
+): void {
+  const invalid = () =>
+    errorUtilities.createError("Invalid image reference", StatusCodes.BAD_REQUEST);
+
+  const { cloudName } = requireCredentials();
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw invalid();
+  }
+
+  const prefix = `/${cloudName}/image/upload/`;
+  const requiredSegment = `/${scope}/${id}/`;
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.hostname !== "res.cloudinary.com" ||
+    !parsed.pathname.startsWith(prefix) ||
+    !decodeURIComponent(parsed.pathname).includes(requiredSegment)
+  ) {
+    throw invalid();
+  }
+}

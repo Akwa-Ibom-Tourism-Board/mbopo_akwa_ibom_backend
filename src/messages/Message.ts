@@ -1,6 +1,12 @@
 import { DataTypes, Model } from "sequelize";
 import { database } from "../configurations/database";
 
+export enum MessageStatus {
+  Open = "open",
+  InProgress = "in_progress",
+  Resolved = "resolved",
+}
+
 export interface MessageAttributes {
   id: string;
   name: string;
@@ -9,6 +15,11 @@ export interface MessageAttributes {
   title?: string | null;
   message: string;
   read: boolean;
+  // Admin-side complaints workflow (Stage 7). "read" above predates this
+  // and stays as-is (still set by whatever already reads it); status is
+  // the richer 3-state workflow the admin Complaints feature uses.
+  status: MessageStatus;
+  assignedToId?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -32,6 +43,12 @@ Message.init(
     message: { type: DataTypes.TEXT, allowNull: false },
     // Lets staff track what has been handled.
     read: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    status: {
+      type: DataTypes.ENUM(...Object.values(MessageStatus)),
+      allowNull: false,
+      defaultValue: MessageStatus.Open,
+    },
+    assignedToId: { type: DataTypes.UUID, allowNull: true },
   },
   {
     sequelize: database,

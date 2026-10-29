@@ -5,6 +5,7 @@ import { StatusCodes } from "../../../configurations/statusCodes";
 import { AdminUser } from "../../users/AdminUser";
 import { compareHash } from "../../../auth/auth.helpers";
 import { issueAdminSession } from "../../helpers/admin-auth.helpers";
+import { recordActivity } from "../../helpers/activity.helpers";
 
 // Same timing-safe-miss trick as auth/services/login.service.ts: a wrong
 // email costs the same bcrypt time as a wrong password, so response timing
@@ -36,6 +37,7 @@ const adminLoginService = errorUtilities.withServiceErrorHandling(
     }
 
     const session = await issueAdminSession(admin);
+    await recordActivity(admin.get("id") as string, "access", "Signed in");
 
     return responseUtilities.handleServicesResponse(
       StatusCodes.OK,

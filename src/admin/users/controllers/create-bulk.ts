@@ -5,7 +5,11 @@ import createAdminUsersBulkService from "../services/create-bulk.service";
 
 const createBulk = errorUtilities.withControllerErrorHandling(
   async (request: Request, response: Response) => {
-    const result = await createAdminUsersBulkService(request.adminUser!.role, request.body.users);
+    const result = await createAdminUsersBulkService(
+      request.adminUser!.id,
+      request.adminUser!.role,
+      request.body.users,
+    );
     return responseUtilities.responseHandler(
       response,
       result.message,

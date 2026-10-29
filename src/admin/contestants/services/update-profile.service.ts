@@ -6,6 +6,7 @@ import { Application, ApplicationStatus } from "../../../applicants/application/
 import { assertValidCandidatePhotoUrl } from "../../../configurations/cloudinary";
 import { AdminRole } from "../../users/AdminUser";
 import { serializeCandidateForViewer } from "../../helpers/candidate.helpers";
+import { recordActivity } from "../../helpers/activity.helpers";
 
 export interface ProfileUpdateInput {
   bio?: string | null;
@@ -18,7 +19,7 @@ export interface ProfileUpdateInput {
 // out of the request is left untouched, but a field that IS present
 // replaces its entire array, it doesn't merge into the existing one.
 const updateProfileService = errorUtilities.withServiceErrorHandling(
-  async (viewerRole: AdminRole, applicationId: string, input: ProfileUpdateInput) => {
+  async (actorId: string, viewerRole: AdminRole, applicationId: string, input: ProfileUpdateInput) => {
     const application = await Application.findByPk(applicationId);
     if (!application || application.get("status") !== ApplicationStatus.Submitted) {
       throw errorUtilities.createError("Contestant not found", StatusCodes.NOT_FOUND);
@@ -42,6 +43,13 @@ const updateProfileService = errorUtilities.withServiceErrorHandling(
     if (!user) {
       throw errorUtilities.createError("Contestant not found", StatusCodes.NOT_FOUND);
     }
+
+    await recordActivity(
+      actorId,
+      "candidates",
+      `Updated the public profile of ${user.get("firstName")} ${user.get("lastName")}`,
+      [applicationId],
+    );
 
     return responseUtilities.handleServicesResponse(
       StatusCodes.OK,

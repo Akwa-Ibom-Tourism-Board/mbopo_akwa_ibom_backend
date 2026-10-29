@@ -11,11 +11,12 @@ import {
   assertAssignable,
   assertSingleActiveHeadJudge,
 } from "../../helpers/admin-users.helpers";
+import { recordActivity } from "../../helpers/activity.helpers";
 
 // Per-row try/catch so one bad email in a batch doesn't abort the rest —
 // mirrors the admin frontend's own bulk-add dummy implementation.
 const createAdminUsersBulkService = errorUtilities.withServiceErrorHandling(
-  async (actorRole: AdminRole, inputs: NewAdminUserInput[]) => {
+  async (actorId: string, actorRole: AdminRole, inputs: NewAdminUserInput[]) => {
     const created: ReturnType<typeof serializeAdminUser>[] = [];
     const failed: { email: string; reason: string }[] = [];
 
@@ -42,6 +43,10 @@ const createAdminUsersBulkService = errorUtilities.withServiceErrorHandling(
             : (error.message ?? "Could not create this user");
         failed.push({ email: input.email, reason });
       }
+    }
+
+    if (created.length) {
+      await recordActivity(actorId, "users", `Added ${created.length} staff account(s) in bulk`);
     }
 
     return responseUtilities.handleServicesResponse(StatusCodes.OK, "Bulk add complete", {

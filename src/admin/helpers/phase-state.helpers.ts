@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import errorUtilities from "../../configurations/error-handler";
 import { StatusCodes } from "../../configurations/statusCodes";
 import { PhaseState, PhaseStatus } from "../stages/PhaseState";
@@ -58,6 +59,60 @@ export async function countedJudges(phaseId: PhaseId): Promise<CountedJudge[]> {
       head: (r.get("role") as AdminRole) === AdminRole.HeadJudge,
       active: true,
     }));
+}
+
+export interface PhaseActor {
+  id: string;
+  name: string;
+  role: AdminRole;
+}
+
+/**
+ * Resolves every openedBy/closedBy/resultsSubmittedBy/reopenedBy UUID on a
+ * batch of PhaseState rows into display-ready {id, name, role} — the admin
+ * frontend wants to show who did what (and their role, to hide a Super
+ * Admin's identity from an Admin), but the model itself deliberately keeps
+ * only the raw FK (see PhaseState.ts's own note on this). One batch lookup
+ * for the whole set, not per-row.
+ */
+export async function serializePhaseStates(states: PhaseState[]) {
+  const actorIds = [
+    ...new Set(
+      states.flatMap((s) => [
+        s.get("openedBy"),
+        s.get("closedBy"),
+        s.get("resultsSubmittedBy"),
+        s.get("reopenedBy"),
+      ]),
+    ),
+  ].filter((id): id is string => Boolean(id));
+
+  const actors = actorIds.length
+    ? await AdminUser.findAll({ where: { id: { [Op.in]: actorIds } } })
+    : [];
+  const byId = new Map(actors.map((a) => [a.get("id") as string, a]));
+
+  const resolve = (id: unknown): PhaseActor | null => {
+    if (typeof id !== "string") return null;
+    const actor = byId.get(id);
+    if (!actor) return null;
+    return {
+      id,
+      name: `${actor.get("firstName")} ${actor.get("lastName")}`,
+      role: actor.get("role") as AdminRole,
+    };
+  };
+
+  return states.map((s) => {
+    const json: any = s.toJSON();
+    return {
+      ...json,
+      openedBy: resolve(json.openedBy),
+      closedBy: resolve(json.closedBy),
+      resultsSubmittedBy: resolve(json.resultsSubmittedBy),
+      reopenedBy: resolve(json.reopenedBy),
+    };
+  });
 }
 
 /** Throws unless the phase is open and its results haven't been submitted. */

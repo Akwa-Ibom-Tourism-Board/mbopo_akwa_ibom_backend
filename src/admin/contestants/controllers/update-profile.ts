@@ -6,6 +6,7 @@ import updateProfileService from "../services/update-profile.service";
 const updateProfile = errorUtilities.withControllerErrorHandling(
   async (request: Request, response: Response) => {
     const result = await updateProfileService(
+      request.adminUser!.id,
       request.adminUser!.role,
       request.params.id,
       request.body,

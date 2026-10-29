@@ -3,6 +3,7 @@ import responseUtilities from "../../../configurations/response";
 import { StatusCodes } from "../../../configurations/statusCodes";
 import { getOrCreatePhaseState, countedJudges } from "../../helpers/phase-state.helpers";
 import { PhaseStatus } from "../PhaseState";
+import { recordActivity } from "../../helpers/activity.helpers";
 import { phaseTitle, type PhaseId } from "../../judging/phases.config";
 
 /**
@@ -34,6 +35,8 @@ const closePhaseService = errorUtilities.withServiceErrorHandling(
       // this stage once it's closed.
       countedJudgeIds: judges.map((j) => j.id),
     } as any);
+
+    await recordActivity(actorId, "judging", `Closed ${phaseTitle(phaseId)}`);
 
     return responseUtilities.handleServicesResponse(StatusCodes.OK, "Stage closed");
   },

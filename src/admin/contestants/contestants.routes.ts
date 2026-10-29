@@ -5,10 +5,15 @@ import validate from "../../configurations/validate";
 import authenticateAdmin from "../middleware/authenticate-admin";
 import requireCapability from "../middleware/require-capability";
 import { AKWA_IBOM_LGAS } from "../../configurations/constants";
+import { PHOTO_FIELDS } from "../../configurations/cloudinary";
+import { draftSchema } from "../../applicants/application/application.routes";
 import list from "./controllers/list";
 import getOne from "./controllers/get-one";
 import photoSignature from "./controllers/photo-signature";
 import updateProfile from "./controllers/update-profile";
+import updateDetails from "./controllers/update-details";
+import documentSignature from "./controllers/document-signature";
+import saveDocument from "./controllers/save-document";
 
 const router = express.Router();
 
@@ -43,6 +48,20 @@ const profileUpdateSchema = Joi.object({
   .min(1)
   .messages({ "object.min": "Provide at least one field to update" });
 
+const documentSignatureSchema = Joi.object({
+  field: Joi.string()
+    .valid(...PHOTO_FIELDS)
+    .required(),
+});
+
+const saveDocumentSchema = Joi.object({
+  field: Joi.string()
+    .valid(...PHOTO_FIELDS)
+    .required(),
+  url: Joi.string().uri().required(),
+  publicId: Joi.string().required(),
+});
+
 // "candidates.view" is the broadest of the three candidate capabilities
 // (Media included) — field-level redaction down to what each role may
 // actually see happens inside serializeCandidateForViewer, not via
@@ -75,6 +94,30 @@ router.patch(
   validateParams(idParamSchema),
   validate(profileUpdateSchema),
   updateProfile,
+);
+router.patch(
+  "/:id/details",
+  authenticateAdmin,
+  requireCapability("candidates.editDetails"),
+  validateParams(idParamSchema),
+  validate(draftSchema),
+  updateDetails,
+);
+router.post(
+  "/:id/document-signature",
+  authenticateAdmin,
+  requireCapability("candidates.editDetails"),
+  validateParams(idParamSchema),
+  validate(documentSignatureSchema),
+  documentSignature,
+);
+router.patch(
+  "/:id/document",
+  authenticateAdmin,
+  requireCapability("candidates.editDetails"),
+  validateParams(idParamSchema),
+  validate(saveDocumentSchema),
+  saveDocument,
 );
 
 export default router;

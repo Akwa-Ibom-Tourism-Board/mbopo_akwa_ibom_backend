@@ -10,6 +10,7 @@ import { requireOpenPhase } from "../../helpers/phase-state.helpers";
 import { getJudgingPool, applyJudgingDecision } from "../../helpers/candidate-judging.helpers";
 import { buildFinalizeStatus } from "../../helpers/leaderboard.helpers";
 import { PhaseState } from "../../stages/PhaseState";
+import { recordActivity } from "../../helpers/activity.helpers";
 import { can, type Capability } from "../../rbac";
 import { AdminRole } from "../../users/AdminUser";
 import { PHASE_QUOTA } from "../stages.config";
@@ -161,6 +162,15 @@ const submitResultsService = errorUtilities.withServiceErrorHandling(
       resultsSubmittedBy: actorId,
       passedIds: [...passed],
     } as any);
+
+    await recordActivity(
+      actorId,
+      "judging",
+      finalRound
+        ? `Submitted the results of ${phase}: winner chosen`
+        : `Submitted the results of ${phase}: ${passed.size} through, ${out.length} eliminated`,
+      [...passed, ...out.map((c) => c.get("id") as string)],
+    );
 
     const result: SubmitResultsResult = { through: passed.size, eliminated: out.length };
     return responseUtilities.handleServicesResponse(StatusCodes.OK, "Results submitted", result);

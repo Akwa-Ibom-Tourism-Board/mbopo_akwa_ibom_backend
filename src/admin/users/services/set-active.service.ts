@@ -4,6 +4,7 @@ import { StatusCodes } from "../../../configurations/statusCodes";
 import { AdminUser, AdminRole } from "../AdminUser";
 import { serializeAdminUser } from "../../helpers/admin-auth.helpers";
 import { assertSingleActiveHeadJudge } from "../../helpers/admin-users.helpers";
+import { recordActivity } from "../../helpers/activity.helpers";
 
 const setAdminUserActiveService = errorUtilities.withServiceErrorHandling(
   async (actorId: string, targetId: string, active: boolean) => {
@@ -28,6 +29,12 @@ const setAdminUserActiveService = errorUtilities.withServiceErrorHandling(
     await assertSingleActiveHeadJudge(admin.get("role") as AdminRole, active, targetId);
     // Deactivating also revokes any live session immediately.
     await admin.update({ active, refreshToken: active ? admin.get("refreshToken") : null } as any);
+
+    await recordActivity(
+      actorId,
+      "users",
+      `${active ? "Reactivated" : "Deactivated"} the account of ${admin.get("firstName")} ${admin.get("lastName")}`,
+    );
 
     return responseUtilities.handleServicesResponse(
       StatusCodes.OK,

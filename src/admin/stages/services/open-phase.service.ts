@@ -5,6 +5,7 @@ import { CandidateJudgingStatus } from "../../../applicants/application/Applicat
 import { getOrCreatePhaseState } from "../../helpers/phase-state.helpers";
 import { getJudgingPool, applyJudgingDecision } from "../../helpers/candidate-judging.helpers";
 import { PhaseStatus } from "../PhaseState";
+import { recordActivity } from "../../helpers/activity.helpers";
 import { prevPhaseId, phaseTitle, stageOfPhase, type PhaseId } from "../../judging/phases.config";
 
 /**
@@ -49,6 +50,12 @@ const openPhaseService = errorUtilities.withServiceErrorHandling(
     }
 
     await state.update({ status: PhaseStatus.Open, openedAt: new Date(), openedBy: actorId } as any);
+
+    await recordActivity(
+      actorId,
+      "judging",
+      `Opened ${phaseTitle(phaseId)}${prev ? ` with ${moved} candidate(s)` : ""}`,
+    );
 
     return responseUtilities.handleServicesResponse(StatusCodes.OK, "Stage opened", { moved });
   },

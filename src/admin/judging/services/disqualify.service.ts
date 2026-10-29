@@ -5,11 +5,12 @@ import { StatusCodes } from "../../../configurations/statusCodes";
 import { Application, CandidateJudgingStatus } from "../../../applicants/application/Application";
 import { requireOpenPhase } from "../../helpers/phase-state.helpers";
 import { applyJudgingDecision } from "../../helpers/candidate-judging.helpers";
+import { recordActivity } from "../../helpers/activity.helpers";
 import type { PhaseId } from "../phases.config";
 
 // Rule-breakers only — a normal cut happens via submit-results, not here.
 const disqualifyService = errorUtilities.withServiceErrorHandling(
-  async (applicationIds: string[], reason: string) => {
+  async (actorId: string, applicationIds: string[], reason: string) => {
     const trimmedReason = reason.trim();
     if (!trimmedReason) {
       throw errorUtilities.createError(
@@ -49,6 +50,13 @@ const disqualifyService = errorUtilities.withServiceErrorHandling(
         })),
       );
     }
+
+    await recordActivity(
+      actorId,
+      "judging",
+      `Disqualified ${result.length} candidate(s) — ${trimmedReason}`,
+      result.map((r) => r.get("id") as string),
+    );
 
     return responseUtilities.handleServicesResponse(
       StatusCodes.OK,

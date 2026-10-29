@@ -11,6 +11,9 @@ import adminApplicantsRouter from "../admin/applicants/applicants.routes";
 import adminContestantsRouter from "../admin/contestants/contestants.routes";
 import adminJudgingRouter from "../admin/judging/judging.routes";
 import adminStagesRouter from "../admin/stages/stages.routes";
+import adminActivityRouter from "../admin/activity/activity.routes";
+import adminComplaintsRouter from "../admin/complaints/complaints.routes";
+import adminVotingContentRouter from "../admin/voting-content/voting-content.routes";
 import publicRouter from "../public/public.routes";
 
 const rootRouter = Router();
@@ -27,6 +30,9 @@ rootRouter.use("/admin/applicants", adminApplicantsRouter);
 rootRouter.use("/admin/contestants", adminContestantsRouter);
 rootRouter.use("/admin/judging", adminJudgingRouter);
 rootRouter.use("/admin/stages", adminStagesRouter);
+rootRouter.use("/admin/activity", adminActivityRouter);
+rootRouter.use("/admin/complaints", adminComplaintsRouter);
+rootRouter.use("/admin/voting-content", adminVotingContentRouter);
 rootRouter.use("/public", publicRouter);
 
 export default rootRouter;
