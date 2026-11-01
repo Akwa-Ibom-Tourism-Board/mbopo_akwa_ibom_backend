@@ -57,6 +57,30 @@ export const assertSingleActiveHeadJudge = async (
   }
 };
 
+/**
+ * Super Admin accounts are invisible to and untouchable by everyone else —
+ * not just protected, but undetectable: an Admin probing a Super Admin's
+ * id gets the exact same 404 "not found" as a genuinely nonexistent id,
+ * never a 403 that would confirm the id belongs to someone real. A Super
+ * Admin actor sees the real 403 instead (they already know the tier
+ * exists), since this endpoint still never allows acting on a Super Admin
+ * account — that only ever happens through the seed script.
+ */
+export const assertTargetVisible = (
+  admin: AdminUser,
+  actorRole: AdminRole,
+  action: string,
+): void => {
+  if ((admin.get("role") as AdminRole) !== AdminRole.SuperAdmin) return;
+  if (actorRole !== AdminRole.SuperAdmin) {
+    throw errorUtilities.createError("Admin user not found", StatusCodes.NOT_FOUND);
+  }
+  throw errorUtilities.createError(
+    `Super Admin accounts cannot be ${action} here`,
+    StatusCodes.FORBIDDEN,
+  );
+};
+
 export const mapUniqueConstraintError = (error: unknown): never => {
   if (error instanceof UniqueConstraintError) {
     throw errorUtilities.createError("Email already in use", StatusCodes.CONFLICT);

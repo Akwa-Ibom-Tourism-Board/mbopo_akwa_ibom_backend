@@ -91,4 +91,4 @@ export function senatorialDistrictOf(lga: string | null | undefined): string | u
 export const NIGERIAN_PHONE_REGEX = /^(0[789][01]\d{8}|234[789][01]\d{8})$/;
 
 export const MINIMUM_ELIGIBLE_AGE = 22;
-export const MAXIMUM_ELIGIBLE_AGE = 60;
+export const MAXIMUM_ELIGIBLE_AGE = 27;

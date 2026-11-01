@@ -2,16 +2,17 @@ import errorUtilities from "../../../configurations/error-handler";
 import responseUtilities from "../../../configurations/response";
 import { StatusCodes } from "../../../configurations/statusCodes";
 import { hashData } from "../../../auth/auth.helpers";
-import { AdminUser } from "../AdminUser";
-import { generateTemporaryPassword } from "../../helpers/admin-users.helpers";
+import { AdminUser, AdminRole } from "../AdminUser";
+import { generateTemporaryPassword, assertTargetVisible } from "../../helpers/admin-users.helpers";
 import { recordActivity } from "../../helpers/activity.helpers";
 
 const resetAdminUserPasswordService = errorUtilities.withServiceErrorHandling(
-  async (actorId: string, targetId: string) => {
+  async (actorId: string, actorRole: AdminRole, targetId: string) => {
     const admin = await AdminUser.findByPk(targetId);
     if (!admin) {
       throw errorUtilities.createError("Admin user not found", StatusCodes.NOT_FOUND);
     }
+    assertTargetVisible(admin, actorRole, "reset");
 
     const temporaryPassword = generateTemporaryPassword();
     await admin.update({

@@ -7,6 +7,7 @@ const setActive = errorUtilities.withControllerErrorHandling(
   async (request: Request, response: Response) => {
     const result = await setAdminUserActiveService(
       request.adminUser!.id,
+      request.adminUser!.role,
       request.params.id,
       request.body.active,
     );

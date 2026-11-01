@@ -10,6 +10,7 @@ import createBulk from "./controllers/create-bulk";
 import update from "./controllers/update";
 import setActive from "./controllers/set-active";
 import resetPassword from "./controllers/reset-password";
+import deleteAdminUser from "./controllers/delete";
 
 const router = express.Router();
 
@@ -80,6 +81,12 @@ router.post(
   authenticateAdmin,
   requireCapability("users.manage"),
   resetPassword,
+);
+router.delete(
+  "/:id",
+  authenticateAdmin,
+  requireCapability("users.delete"),
+  deleteAdminUser,
 );
 
 export default router;

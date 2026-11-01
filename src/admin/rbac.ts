@@ -45,8 +45,11 @@ export type Capability =
   | "voting.sponsors"
   // Media's own upload path (Stage 4)
   | "media.upload"
-  // Users
+  // Users — "manage" is create/edit/activate/reset-password, shared with
+  // Admin; "delete" is Super Admin only (destructive and, unlike a
+  // deactivation, not reversible from the UI).
   | "users.manage"
+  | "users.delete"
   // Complaints
   | "complaints.view"
   | "complaints.respond"
@@ -108,6 +111,7 @@ export const PERMISSIONS: Record<Capability, readonly AdminRole[]> = {
   "media.upload": [AdminRole.SuperAdmin, AdminRole.Admin, AdminRole.Media],
 
   "users.manage": [AdminRole.SuperAdmin, AdminRole.Admin],
+  "users.delete": [AdminRole.SuperAdmin],
 
   "complaints.view": [
     AdminRole.SuperAdmin,

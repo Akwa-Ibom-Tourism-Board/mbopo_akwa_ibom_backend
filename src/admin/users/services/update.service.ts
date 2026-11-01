@@ -7,6 +7,7 @@ import {
   type AdminUserUpdate,
   assertAssignable,
   assertSingleActiveHeadJudge,
+  assertTargetVisible,
   mapUniqueConstraintError,
 } from "../../helpers/admin-users.helpers";
 import { recordActivity } from "../../helpers/activity.helpers";
@@ -17,14 +18,8 @@ const updateAdminUserService = errorUtilities.withServiceErrorHandling(
     if (!admin) {
       throw errorUtilities.createError("Admin user not found", StatusCodes.NOT_FOUND);
     }
+    assertTargetVisible(admin, actorRole, "edited");
 
-    const currentRole = admin.get("role") as AdminRole;
-    if (currentRole === AdminRole.SuperAdmin) {
-      throw errorUtilities.createError(
-        "Super Admin accounts cannot be edited here",
-        StatusCodes.FORBIDDEN,
-      );
-    }
     if (patch.role) {
       assertAssignable(actorRole, patch.role);
       await assertSingleActiveHeadJudge(patch.role, true, targetId);

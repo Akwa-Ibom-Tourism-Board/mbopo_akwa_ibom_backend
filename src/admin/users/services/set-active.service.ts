@@ -3,11 +3,11 @@ import responseUtilities from "../../../configurations/response";
 import { StatusCodes } from "../../../configurations/statusCodes";
 import { AdminUser, AdminRole } from "../AdminUser";
 import { serializeAdminUser } from "../../helpers/admin-auth.helpers";
-import { assertSingleActiveHeadJudge } from "../../helpers/admin-users.helpers";
+import { assertSingleActiveHeadJudge, assertTargetVisible } from "../../helpers/admin-users.helpers";
 import { recordActivity } from "../../helpers/activity.helpers";
 
 const setAdminUserActiveService = errorUtilities.withServiceErrorHandling(
-  async (actorId: string, targetId: string, active: boolean) => {
+  async (actorId: string, actorRole: AdminRole, targetId: string, active: boolean) => {
     if (!active && actorId === targetId) {
       throw errorUtilities.createError(
         "You cannot deactivate your own account",
@@ -19,12 +19,7 @@ const setAdminUserActiveService = errorUtilities.withServiceErrorHandling(
     if (!admin) {
       throw errorUtilities.createError("Admin user not found", StatusCodes.NOT_FOUND);
     }
-    if ((admin.get("role") as AdminRole) === AdminRole.SuperAdmin) {
-      throw errorUtilities.createError(
-        "Super Admin accounts cannot be deactivated here",
-        StatusCodes.FORBIDDEN,
-      );
-    }
+    assertTargetVisible(admin, actorRole, "deactivated");
 
     await assertSingleActiveHeadJudge(admin.get("role") as AdminRole, active, targetId);
     // Deactivating also revokes any live session immediately.
