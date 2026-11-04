@@ -12,7 +12,9 @@
     "lint": "eslint .",
     "migrate:local": "flyway -configFiles=flyway.conf,flyway-local.conf migrate",
     "migrate:prod": "flyway -configFiles=flyway.conf,flyway-prod.conf migrate",
-    "seed:super-admin": "ts-node src/scripts/seed-super-admin.ts"
+    "seed:super-admin": "ts-node src/scripts/seed-super-admin.ts",
+    "zoho:sync-once": "ts-node src/scripts/zoho-sync-once.ts",
+    "zoho:clean-quoted-replies": "ts-node src/scripts/clean-quoted-replies.ts"
   },
   "keywords": [],
   "author": "",

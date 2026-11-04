@@ -13,6 +13,11 @@ export interface MessageAttachment {
   bytes: number;
 }
 
+export enum MessageSource {
+  Widget = "widget",
+  Email = "email",
+}
+
 export interface MessageAttributes {
   id: string;
   name: string;
@@ -27,6 +32,14 @@ export interface MessageAttributes {
   // the richer 3-state workflow the admin Complaints feature uses.
   status: MessageStatus;
   assignedToId?: string | null;
+  // Where this complaint originated. "email" rows are created by the Zoho
+  // Mail sync (zoho-mail-sync.service.ts) from mail sent directly to
+  // info@akhtdc.com.ng, rather than the "Ask Me" widget.
+  source: MessageSource;
+  // The Zoho message that created this row, for dedup across polls. Only
+  // set on source="email" rows — null (not empty string) for widget
+  // submissions, which Postgres allows any number of under a unique index.
+  zohoMessageId?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -57,6 +70,12 @@ Message.init(
       defaultValue: MessageStatus.Open,
     },
     assignedToId: { type: DataTypes.UUID, allowNull: true },
+    source: {
+      type: DataTypes.ENUM(...Object.values(MessageSource)),
+      allowNull: false,
+      defaultValue: MessageSource.Widget,
+    },
+    zohoMessageId: { type: DataTypes.STRING, allowNull: true, unique: true },
   },
   {
     sequelize: database,

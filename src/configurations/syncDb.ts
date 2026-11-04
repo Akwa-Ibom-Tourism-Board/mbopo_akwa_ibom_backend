@@ -8,6 +8,7 @@ import "../admin/judging/JudgeScore";
 import "../admin/stages/PhaseState";
 import "../admin/activity/ActivityLog";
 import "../messages/MessageReply";
+import "../messages/ComplainantReply";
 import "../admin/voting-content/VoteTier";
 import "../admin/voting-content/NewsPost";
 import "../admin/voting-content/Sponsor";

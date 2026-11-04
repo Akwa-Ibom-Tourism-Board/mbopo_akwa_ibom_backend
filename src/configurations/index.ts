@@ -25,6 +25,11 @@ const {
   DVP_SECRET_KEY,
   DVP_PROGRAM_ID,
   MESSAGES_NOTIFY_EMAIL,
+  ZOHO_CLIENT_ID,
+  ZOHO_CLIENT_SECRET,
+  ZOHO_REFRESH_TOKEN,
+  ZOHO_ACCOUNT_ID,
+  ZOHO_INBOX_FOLDER_ID,
 } = process.env;
 
 export default merge(
@@ -42,6 +47,13 @@ export default merge(
     DVP_SECRET_KEY,
     DVP_PROGRAM_ID,
     MESSAGES_NOTIFY_EMAIL,
+    // Same Zoho Mail account (info@akhtdc.com.ng) in both dev and
+    // production — not per-environment, unlike DATABASE_URL/Cloudinary.
+    ZOHO_CLIENT_ID,
+    ZOHO_CLIENT_SECRET,
+    ZOHO_REFRESH_TOKEN,
+    ZOHO_ACCOUNT_ID,
+    ZOHO_INBOX_FOLDER_ID,
   },
   config,
 );

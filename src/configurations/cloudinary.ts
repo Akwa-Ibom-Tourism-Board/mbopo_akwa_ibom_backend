@@ -420,6 +420,49 @@ export function signComplaintAttachmentUpload(submissionId: string, slot: number
   };
 }
 
+const EMAIL_ATTACHMENT_MIME_BY_EXTENSION: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  pdf: "application/pdf",
+};
+
+/**
+ * Direct (unsigned-flow) upload of a complaint attachment that arrived as a
+ * real email, via the Zoho Mail sync — there's no browser client here to
+ * hand a signature to, so this uploads straight from the server using the
+ * same admin credentials uploadSelfieToAvatar() uses. Scoped to the same
+ * "complaints" folder as widget attachments (signComplaintAttachmentUpload
+ * above) so both show up identically in the admin Complaints UI. Only
+ * images/PDF are supported, matching the widget's own allowed formats —
+ * any other attachment type (docx, zip, ...) is skipped by the caller.
+ */
+export async function uploadEmailAttachmentToCloudinary(
+  messageId: string,
+  slot: number,
+  buffer: Buffer,
+  filename: string,
+): Promise<{ url: string; bytes: number } | null> {
+  const extension = filename.split(".").pop()?.toLowerCase() ?? "";
+  if (!EMAIL_ATTACHMENT_MIME_BY_EXTENSION[extension]) return null;
+
+  const { cloudName, apiKey, apiSecret } = requireCredentials();
+  cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret, secure: true });
+
+  const publicId = `mbopo/${process.env.NODE_ENV}/complaints/email-${messageId}/attachment-${slot}`;
+  const dataUri = `data:${EMAIL_ATTACHMENT_MIME_BY_EXTENSION[extension]};base64,${buffer.toString("base64")}`;
+
+  const uploaded = await cloudinary.uploader.upload(dataUri, {
+    public_id: publicId,
+    overwrite: true,
+    invalidate: true,
+    resource_type: "image",
+    allowed_formats: ["jpg", "jpeg", "png", "pdf"],
+  });
+
+  return { url: uploaded.secure_url, bytes: uploaded.bytes ?? buffer.length };
+}
+
 export function assertValidComplaintAttachmentUrl(url: string): void {
   const invalid = () =>
     errorUtilities.createError("Invalid attachment reference", StatusCodes.BAD_REQUEST);

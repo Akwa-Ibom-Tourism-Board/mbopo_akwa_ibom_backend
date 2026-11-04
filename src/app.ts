@@ -12,6 +12,7 @@ import config from "./configurations";
 import errorUtilities from "./configurations/error-handler";
 import { syncDatabases } from "./configurations/syncDb";
 import { scheduleRetention } from "./configurations/maintenance";
+import { scheduleZohoMailSync } from "./configurations/zoho-mail-schedule";
 
 dotenv.config();
 
@@ -92,6 +93,7 @@ app.use(errorUtilities.globalErrorHandler);
 (async () => {
   await syncDatabases();
   scheduleRetention();
+  scheduleZohoMailSync();
   app.listen(config.PORT, () => {
     console.log(`server running on Port ${config.PORT}`);
   });
