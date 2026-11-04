@@ -118,7 +118,11 @@ export const PERMISSIONS: Record<Capability, readonly AdminRole[]> = {
     AdminRole.Admin,
     AdminRole.CustomerService,
   ],
-  "complaints.respond": [AdminRole.CustomerService],
+  "complaints.respond": [
+    AdminRole.SuperAdmin,
+    AdminRole.Admin,
+    AdminRole.CustomerService,
+  ],
   "complaints.reassign": [AdminRole.SuperAdmin, AdminRole.Admin],
 
   "activity.view": [AdminRole.SuperAdmin, AdminRole.Admin],

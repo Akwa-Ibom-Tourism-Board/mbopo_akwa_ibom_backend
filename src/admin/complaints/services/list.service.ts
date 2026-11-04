@@ -4,10 +4,10 @@ import responseUtilities from "../../../configurations/response";
 import { StatusCodes } from "../../../configurations/statusCodes";
 import { Message } from "../../../messages/Message";
 import { MessageReply } from "../../../messages/MessageReply";
-import { AdminUser } from "../../users/AdminUser";
+import { AdminUser, AdminRole } from "../../users/AdminUser";
 import { serializeComplaint, registeredEmailSet } from "../helpers/complaint.helpers";
 
-const listComplaintsService = errorUtilities.withServiceErrorHandling(async () => {
+const listComplaintsService = errorUtilities.withServiceErrorHandling(async (viewerRole: AdminRole) => {
   const messages = await Message.findAll({ order: [["updatedAt", "DESC"]] });
   const replies = await MessageReply.findAll({
     where: { messageId: { [Op.in]: messages.map((m) => m.get("id") as string) } },
@@ -26,6 +26,7 @@ const listComplaintsService = errorUtilities.withServiceErrorHandling(async () =
         replies.filter((r) => r.get("messageId") === message.get("id")),
         staffById,
         registered.has((message.get("email") as string).toLowerCase()),
+        viewerRole,
       ),
     ),
   );

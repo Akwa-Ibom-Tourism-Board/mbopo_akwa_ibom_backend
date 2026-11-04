@@ -4,10 +4,10 @@ import responseUtilities from "../../../configurations/response";
 import { StatusCodes } from "../../../configurations/statusCodes";
 import { Message } from "../../../messages/Message";
 import { MessageReply } from "../../../messages/MessageReply";
-import { AdminUser } from "../../users/AdminUser";
+import { AdminUser, AdminRole } from "../../users/AdminUser";
 import { serializeComplaint, registeredEmailSet } from "../helpers/complaint.helpers";
 
-const getComplaintService = errorUtilities.withServiceErrorHandling(async (id: string) => {
+const getComplaintService = errorUtilities.withServiceErrorHandling(async (id: string, viewerRole: AdminRole) => {
   const message = await Message.findByPk(id);
   if (!message) {
     throw errorUtilities.createError("Complaint not found", StatusCodes.NOT_FOUND);
@@ -26,6 +26,7 @@ const getComplaintService = errorUtilities.withServiceErrorHandling(async (id: s
     replies,
     staffById,
     registered.has((message.get("email") as string).toLowerCase()),
+    viewerRole,
   );
 
   return responseUtilities.handleServicesResponse(StatusCodes.OK, "Complaint fetched", data);

@@ -5,6 +5,7 @@ import configurations from "../../configurations";
 import { queueEmail } from "../../configurations/email-queue";
 import { Message } from "../Message";
 import { newMessageTemplate } from "../emailTemplates/newMessage";
+import { messageReceivedTemplate } from "../emailTemplates/messageReceived";
 
 export interface CreateMessagePayload {
   name: string;
@@ -28,6 +29,19 @@ const createMessageService = errorUtilities.withServiceErrorHandling(
       } catch (error: any) {
         console.error("Failed to queue new-message email:", error.message);
       }
+    }
+
+    // Best-effort confirmation to the complainant themselves — same
+    // never-fail-the-submission rule as the staff alert above.
+    try {
+      const confirmation = messageReceivedTemplate(payload.name);
+      await queueEmail({
+        to: payload.email,
+        subject: confirmation.subject,
+        htmlBody: confirmation.htmlBody,
+      });
+    } catch (error: any) {
+      console.error("Failed to queue message-received email:", error.message);
     }
 
     return responseUtilities.handleServicesResponse(

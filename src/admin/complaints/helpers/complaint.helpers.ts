@@ -2,7 +2,7 @@ import { Op } from "sequelize";
 import { Message } from "../../../messages/Message";
 import { MessageReply } from "../../../messages/MessageReply";
 import { User } from "../../../auth/User";
-import { AdminUser } from "../../users/AdminUser";
+import { AdminUser, AdminRole } from "../../users/AdminUser";
 
 /**
  * Shared by list.service.ts and get-one.service.ts — the admin Complaints
@@ -17,6 +17,7 @@ export async function serializeComplaint(
   replies: MessageReply[],
   staffById: Map<string, AdminUser>,
   isRegisteredEmail: boolean,
+  viewerRole: AdminRole,
 ) {
   const json: any = message.toJSON();
 
@@ -28,13 +29,22 @@ export async function serializeComplaint(
     at: json.createdAt,
   };
 
+  // Customer Service replies always show the responder's real name. Admin/
+  // Super Admin replies show just "Admin" to everyone except a Super Admin
+  // viewer, who can see exactly who on staff responded.
   const replyMessages = replies.map((reply) => {
     const replyJson: any = reply.toJSON();
     const staff = staffById.get(replyJson.staffId);
+    const staffRole = staff?.get("role") as AdminRole | undefined;
+    const realName = staff ? `${staff.get("firstName")} ${staff.get("lastName")}` : "Staff";
+    const authorName =
+      staffRole === AdminRole.CustomerService || viewerRole === AdminRole.SuperAdmin
+        ? realName
+        : "Admin";
     return {
       id: replyJson.id,
       from: "staff" as const,
-      authorName: staff ? `${staff.get("firstName")} ${staff.get("lastName")}` : "Staff",
+      authorName,
       body: replyJson.body,
       at: replyJson.createdAt,
     };
