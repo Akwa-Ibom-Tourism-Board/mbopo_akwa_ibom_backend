@@ -27,6 +27,7 @@ export async function serializeComplaint(
     authorName: json.name,
     body: json.message,
     at: json.createdAt,
+    attachments: json.attachments ?? [],
   };
 
   // Customer Service replies always show the responder's real name. Admin/

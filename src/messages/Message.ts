@@ -7,6 +7,12 @@ export enum MessageStatus {
   Resolved = "resolved",
 }
 
+export interface MessageAttachment {
+  url: string;
+  filename: string;
+  bytes: number;
+}
+
 export interface MessageAttributes {
   id: string;
   name: string;
@@ -14,6 +20,7 @@ export interface MessageAttributes {
   phoneNumber: string;
   title?: string | null;
   message: string;
+  attachments: MessageAttachment[];
   read: boolean;
   // Admin-side complaints workflow (Stage 7). "read" above predates this
   // and stays as-is (still set by whatever already reads it); status is
@@ -41,6 +48,7 @@ Message.init(
     phoneNumber: { type: DataTypes.STRING, allowNull: false },
     title: { type: DataTypes.STRING, allowNull: true },
     message: { type: DataTypes.TEXT, allowNull: false },
+    attachments: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
     // Lets staff track what has been handled.
     read: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     status: {

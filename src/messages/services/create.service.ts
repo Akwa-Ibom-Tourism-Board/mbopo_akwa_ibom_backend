@@ -3,9 +3,10 @@ import responseUtilities from "../../configurations/response";
 import { StatusCodes } from "../../configurations/statusCodes";
 import configurations from "../../configurations";
 import { queueEmail } from "../../configurations/email-queue";
-import { Message } from "../Message";
+import { Message, MessageAttachment } from "../Message";
 import { newMessageTemplate } from "../emailTemplates/newMessage";
 import { messageReceivedTemplate } from "../emailTemplates/messageReceived";
+import { assertValidComplaintAttachmentUrl } from "../../configurations/cloudinary";
 
 export interface CreateMessagePayload {
   name: string;
@@ -13,10 +14,17 @@ export interface CreateMessagePayload {
   phoneNumber: string;
   title?: string;
   message: string;
+  attachments?: MessageAttachment[];
 }
 
 const createMessageService = errorUtilities.withServiceErrorHandling(
   async (payload: CreateMessagePayload) => {
+    // Re-checked here, not just trusted from the signed-upload step — a
+    // client could otherwise submit any URL it likes in this field.
+    for (const attachment of payload.attachments ?? []) {
+      assertValidComplaintAttachmentUrl(attachment.url);
+    }
+
     await Message.create({ ...payload, read: false } as any);
 
     // Best-effort staff alert. The message is already saved, so a missing

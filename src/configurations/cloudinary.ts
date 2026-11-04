@@ -378,6 +378,72 @@ export function signVotingContentUpload(
   };
 }
 
+// ── Public complaint/contact-form attachments (Ask Me widget) ──
+//
+// Submitted by anonymous visitors, before any Message row exists — so,
+// like voting-content images, the client mints its own id (called
+// submissionId here) up front and reuses it for every file in that one
+// submission. Max file count is enforced where the array is accepted
+// (messages.routes.ts); the 5MB-per-file cap is client-side only (no DB
+// row exists yet at signing time to check it against).
+
+export const MAX_COMPLAINT_ATTACHMENTS = 3;
+
+export function buildComplaintAttachmentPublicId(submissionId: string, slot: number): string {
+  return `mbopo/${process.env.NODE_ENV}/complaints/${submissionId}/attachment-${slot}`;
+}
+
+export function signComplaintAttachmentUpload(submissionId: string, slot: number): SignedUpload {
+  const { cloudName, apiKey, apiSecret } = requireCredentials();
+  const publicId = buildComplaintAttachmentPublicId(submissionId, slot);
+  const timestamp = Math.floor(Date.now() / 1000);
+  // No `transformation` — pdf is one of the allowed formats, and a
+  // transformation param can break a non-image upload.
+  const uploadParams: Record<string, string | number | boolean> = {
+    public_id: publicId,
+    overwrite: true,
+    invalidate: true,
+    allowed_formats: "jpg,jpeg,png,pdf",
+  };
+
+  const signature = cloudinary.utils.api_sign_request({ ...uploadParams, timestamp }, apiSecret);
+
+  return {
+    cloudName,
+    apiKey,
+    timestamp,
+    signature,
+    publicId,
+    overwrite: true,
+    resourceType: "image",
+    uploadParams,
+  };
+}
+
+export function assertValidComplaintAttachmentUrl(url: string): void {
+  const invalid = () =>
+    errorUtilities.createError("Invalid attachment reference", StatusCodes.BAD_REQUEST);
+
+  const { cloudName } = requireCredentials();
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw invalid();
+  }
+
+  const prefix = `/${cloudName}/image/upload/`;
+  const requiredSegment = `/complaints/`;
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.hostname !== "res.cloudinary.com" ||
+    !parsed.pathname.startsWith(prefix) ||
+    !decodeURIComponent(parsed.pathname).includes(requiredSegment)
+  ) {
+    throw invalid();
+  }
+}
+
 export function assertValidVotingContentUrl(
   scope: VotingContentScope,
   id: string,
