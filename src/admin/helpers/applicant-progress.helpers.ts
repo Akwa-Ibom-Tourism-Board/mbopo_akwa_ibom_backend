@@ -34,6 +34,8 @@ const isFilled = (value: unknown): boolean =>
 function buildSteps(application: Application | null): RegistrationStep[] {
   const get = (field: string) => (application ? application.get(field as any) : null);
 
+  const educationOk =
+    isFilled(get("education")) && (get("education") !== "Other" || isFilled(get("educationOther")));
   const occupationOk =
     isFilled(get("occupation")) && (get("occupation") !== "Other" || isFilled(get("occupationOther")));
   const institutionOk =
@@ -52,8 +54,8 @@ function buildSteps(application: Application | null): RegistrationStep[] {
     },
     {
       label: "Education & background",
-      fields: ["education", "talents", "languages"],
-      extraOk: occupationOk && institutionOk,
+      fields: ["talents", "languages"],
+      extraOk: educationOk && occupationOk && institutionOk,
     },
     {
       label: "Pitch (photos & video)",

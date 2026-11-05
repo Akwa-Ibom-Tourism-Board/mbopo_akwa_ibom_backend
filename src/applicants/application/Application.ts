@@ -41,10 +41,11 @@ export interface ApplicationAttributes {
   city?: string | null;
   address?: string | null;
   education?: string | null;
+  // Free text, only meaningful (and required at submit) when education/
+  // institution/occupation is literally "Other" — see
+  // applicationSubmitSchema's .when() rules in application.routes.ts.
+  educationOther?: string | null;
   institution?: string | null;
-  // Free text, only meaningful (and required at submit) when institution/
-  // occupation is literally "Other" — see applicationSubmitSchema's
-  // .when() rules in application.routes.ts.
   institutionOther?: string | null;
   occupation?: string | null;
   occupationOther?: string | null;
@@ -132,6 +133,7 @@ Application.init(
     city: { type: DataTypes.STRING, allowNull: true },
     address: { type: DataTypes.TEXT, allowNull: true },
     education: { type: DataTypes.STRING, allowNull: true },
+    educationOther: { type: DataTypes.STRING(100), allowNull: true },
     institution: { type: DataTypes.STRING, allowNull: true },
     institutionOther: { type: DataTypes.STRING(150), allowNull: true },
     occupation: { type: DataTypes.STRING, allowNull: true },

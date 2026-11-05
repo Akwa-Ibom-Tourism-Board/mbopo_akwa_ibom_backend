@@ -78,6 +78,7 @@ export function serializeCandidateForViewer(
     city: json.city ?? null,
     address: json.address ?? null,
     education: json.education ?? null,
+    educationOther: json.educationOther ?? null,
     institution: json.institution ?? null,
     institutionOther: json.institutionOther ?? null,
     occupation: json.occupation ?? null,

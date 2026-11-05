@@ -31,6 +31,7 @@ const SENTENCE_CASE_FIELDS = [
   "languages",
   "initiative",
   "why",
+  "educationOther",
   "occupationOther",
   "institutionOther",
 ] as const;
