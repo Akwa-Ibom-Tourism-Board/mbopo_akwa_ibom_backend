@@ -3,7 +3,7 @@ import Joi from "joi";
 import validate from "../../configurations/validate";
 import authenticate from "../../configurations/authenticate";
 import { PHOTO_FIELDS } from "../../configurations/cloudinary";
-import { AKWA_IBOM_LGAS } from "../../configurations/constants";
+import { AKWA_IBOM_LGAS, MARITAL_STATUSES } from "../../configurations/constants";
 
 import saveDraft from "./controllers/save-draft";
 import getDraft from "./controllers/get-draft";
@@ -24,6 +24,9 @@ const router = express.Router();
 const draftFieldSchema = {
   middleName: Joi.string().trim().max(100).allow("", null).optional(),
   phone: Joi.string().trim().max(32).allow("", null).optional(),
+  maritalStatus: Joi.string().trim().valid(...MARITAL_STATUSES).allow("", null).optional().messages({
+    "any.only": "maritalStatus must be a valid option",
+  }),
   socialMedia: Joi.string().trim().max(200).allow("", null).optional(),
   nextOfKin: Joi.string().trim().max(150).allow("", null).optional(),
   nextOfKinPhone: Joi.string().trim().max(32).allow("", null).optional(),
@@ -71,6 +74,7 @@ export const draftSchema = Joi.object(draftFieldSchema);
 export const applicationSubmitSchema = Joi.object({
   ...draftFieldSchema,
   phone: Joi.string().trim().required(),
+  maritalStatus: Joi.string().trim().valid(...MARITAL_STATUSES).required(),
   nextOfKin: Joi.string().trim().required(),
   nextOfKinPhone: Joi.string().trim().required(),
   nextOfKinRelationship: Joi.string().trim().required(),

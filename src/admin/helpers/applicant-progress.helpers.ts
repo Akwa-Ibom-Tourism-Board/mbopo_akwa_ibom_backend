@@ -46,7 +46,13 @@ function buildSteps(application: Application | null): RegistrationStep[] {
   const defs: { label: string; fields: string[]; extraOk?: boolean }[] = [
     {
       label: "Personal information",
-      fields: ["phone", "nextOfKin", "nextOfKinPhone", "nextOfKinRelationship"],
+      fields: [
+        "phone",
+        "maritalStatus",
+        "nextOfKin",
+        "nextOfKinPhone",
+        "nextOfKinRelationship",
+      ],
     },
     {
       label: "Identity & origin",

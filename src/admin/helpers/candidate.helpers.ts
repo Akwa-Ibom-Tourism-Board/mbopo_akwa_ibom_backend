@@ -69,6 +69,7 @@ export function serializeCandidateForViewer(
     gender: userJson.gender ?? null,
     dateOfBirth: userJson.dateOfBirth ?? null,
     phone: json.phone ?? null,
+    maritalStatus: json.maritalStatus ?? null,
     socialMedia: json.socialMedia ?? null,
     nextOfKin: json.nextOfKin ?? null,
     nextOfKinPhone: json.nextOfKinPhone ?? null,

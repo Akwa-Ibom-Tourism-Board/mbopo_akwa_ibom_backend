@@ -34,6 +34,16 @@ export const AKWA_IBOM_LGAS = [
   "Uyo",
 ] as const;
 
+// Matches the frontend's mbopo-registration/constants.ts MARITAL_STATUSES
+// exactly.
+export const MARITAL_STATUSES = [
+  "Single",
+  "Married",
+  "Divorced",
+  "Widowed",
+  "Separated",
+] as const;
+
 // Cross-checked against Wikipedia's Akwa Ibom senatorial district pages and
 // a 2015 INEC-linked LGA directory. Names must match AKWA_IBOM_LGAS above
 // exactly, character for character, or a candidate silently falls through

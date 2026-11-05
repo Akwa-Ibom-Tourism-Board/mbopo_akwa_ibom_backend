@@ -32,6 +32,7 @@ export interface ApplicationAttributes {
   applicantId: string;
   middleName?: string | null;
   phone?: string | null;
+  maritalStatus?: string | null;
   socialMedia?: string | null;
   nextOfKin?: string | null;
   nextOfKinPhone?: string | null;
@@ -124,6 +125,7 @@ Application.init(
 
     middleName: { type: DataTypes.STRING, allowNull: true },
     phone: { type: DataTypes.STRING, allowNull: true },
+    maritalStatus: { type: DataTypes.STRING(20), allowNull: true },
     socialMedia: { type: DataTypes.STRING, allowNull: true },
     nextOfKin: { type: DataTypes.STRING, allowNull: true },
     nextOfKinPhone: { type: DataTypes.STRING, allowNull: true },
