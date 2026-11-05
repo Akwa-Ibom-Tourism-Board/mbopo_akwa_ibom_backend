@@ -65,6 +65,11 @@ export async function serializeComplaint(
       authorName,
       body: replyJson.body,
       at: replyJson.createdAt,
+      // Whether the notification email for THIS reply actually reached the
+      // complainant — "pending" until the queued job settles, then "sent"
+      // or "failed" (see reply-email-status.subscriber.ts).
+      emailStatus: replyJson.emailStatus,
+      emailError: replyJson.emailError ?? undefined,
     };
   });
 

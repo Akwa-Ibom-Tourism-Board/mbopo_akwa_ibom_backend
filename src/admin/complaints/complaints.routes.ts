@@ -8,12 +8,17 @@ import { MessageStatus } from "../../messages/Message";
 import list from "./controllers/list";
 import getOne from "./controllers/get-one";
 import reply from "./controllers/reply";
+import resendReplyEmail from "./controllers/resend-reply-email";
 import updateStatus from "./controllers/update-status";
 import reassign from "./controllers/reassign";
 
 const router = express.Router();
 
 const idParamSchema = Joi.object({ id: Joi.string().uuid().required() });
+const replyIdParamSchema = Joi.object({
+  id: Joi.string().uuid().required(),
+  replyId: Joi.string().uuid().required(),
+});
 const replySchema = Joi.object({ body: Joi.string().trim().min(1).max(5000).required() });
 const statusSchema = Joi.object({
   status: Joi.string()
@@ -37,6 +42,13 @@ router.post(
   validateParams(idParamSchema),
   validate(replySchema),
   reply,
+);
+router.post(
+  "/:id/replies/:replyId/resend-email",
+  authenticateAdmin,
+  requireCapability("complaints.respond"),
+  validateParams(replyIdParamSchema),
+  resendReplyEmail,
 );
 router.patch(
   "/:id/status",

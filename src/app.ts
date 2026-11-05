@@ -13,12 +13,14 @@ import errorUtilities from "./configurations/error-handler";
 import { syncDatabases } from "./configurations/syncDb";
 import { scheduleRetention } from "./configurations/maintenance";
 import { scheduleZohoMailSync } from "./configurations/zoho-mail-schedule";
+import { registerReplyEmailStatusSubscriber } from "./messages/services/reply-email-status.subscriber";
 
 dotenv.config();
 
 const app = express();
 
 errorUtilities.processErrorHandler();
+registerReplyEmailStatusSubscriber();
 
 // Behind Render's proxy: trust exactly one hop so req.ip (and therefore the
 // rate limiters) sees the real client, not the proxy's shared address.
