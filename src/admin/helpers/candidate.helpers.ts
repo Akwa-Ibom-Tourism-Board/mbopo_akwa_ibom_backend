@@ -92,6 +92,14 @@ export function serializeCandidateForViewer(
     fullImageUrl: json.fullImageUrl ?? null,
     fullImageUrl2: json.fullImageUrl2 ?? null,
     videoPitchUrl: json.videoPitchUrl ?? null,
+    // VIN is no longer verified synchronously at submit — it's checked
+    // afterwards, in the background (see vin-verification-queue.ts), and
+    // never blocks submission. The *outcome* (verified / failed + why) is a
+    // judging signal, so it lives in the viewDetails tier like the rest of
+    // judging state above — but the raw VIN digits themselves stay
+    // Admin/Super-Admin-only, below.
+    isVinVerified: userJson.isVinVerified ?? null,
+    vinVerificationFailedReason: userJson.vinVerificationFailedReason ?? null,
   };
 
   if (!hasCapability("candidates.viewIdentity")) {
@@ -103,7 +111,5 @@ export function serializeCandidateForViewer(
     nin: userJson.nin ?? null,
     vin: userJson.vin ?? null,
     draftVin: json.vin ?? null,
-    isVinVerified: userJson.isVinVerified ?? null,
-    vinVerificationFailedReason: userJson.vinVerificationFailedReason ?? null,
   };
 }

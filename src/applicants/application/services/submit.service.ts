@@ -11,8 +11,7 @@ import {
   CandidateJudgingStatus,
 } from "../Application";
 import { findApplicationForUpdate, normalizeDraftPayload } from "../application.helpers";
-import verifyVIN from "../../../configurations/vin-provider";
-import { namesMatch } from "../../../auth/name-match";
+import { queueVinVerification } from "../../../configurations/vin-verification-queue";
 import { queueEmail } from "../../../configurations/email-queue";
 import { User } from "../../../auth/User";
 import { applicationSubmittedTemplate } from "../emailTemplates/applicationSubmitted";
@@ -27,10 +26,6 @@ const generateReferenceCode = (): string => {
 };
 
 const MAX_REFERENCE_CODE_ATTEMPTS = 5;
-
-const VIN_UNVERIFIED_MESSAGE = "We couldn't verify your VIN. Please check it and try again.";
-const VIN_TAKEN_MESSAGE = "This VIN is already registered to another account.";
-const VIN_NAME_MISMATCH_REASON = "VIN name does not match the verified NIN name";
 
 const assertComplete = (application: Application) => {
   const { error } = applicationSubmitSchema.validate(application.toJSON(), {
@@ -62,11 +57,13 @@ const assertDraftApplication = (application: Application | null): Application =>
 };
 
 /**
- * Transaction 1 (short): lock, status checks, merge the body, validate the
- * merged row. Commits on success, releasing the row lock BEFORE any network
- * call. Returns the VIN to verify.
+ * One transaction: lock, status checks, merge the body, validate the merged
+ * row, record it submitted. VIN is validated for shape only at this point
+ * (see applicationSubmitSchema) — whether it actually exists is checked
+ * afterwards, out of band, by vin-verification-queue.ts, so this never waits
+ * on (or blocks submission for) a DVP round trip.
  */
-const validateDraft = (applicantId: string, payload: Record<string, any>) =>
+const finalizeSubmission = (applicantId: string, payload: Record<string, any>) =>
   database.transaction(async (transaction) => {
     const application = assertDraftApplication(
       await findApplicationForUpdate(applicantId, transaction),
@@ -77,72 +74,13 @@ const validateDraft = (applicantId: string, payload: Record<string, any>) =>
     }
 
     assertComplete(application);
-    return application.get("vin") as string;
-  });
 
-/**
- * Between transactions, no lock held: asks the DVP whether the VIN exists
- * (can take up to the client's 15s timeout) and whether its name matches the
- * already-NIN-verified account name.
- *  - VIN not found -> blocks submission (400)
- *  - DVP down      -> re-thrown as the 503 it is, never "your VIN is wrong"
- *  - found         -> { nameMatches }, which only decides what is recorded
- */
-const checkVin = async (applicantId: string, vin: string): Promise<{ nameMatches: boolean }> => {
-  const user = await User.findByPk(applicantId);
-  if (!user) {
-    throw errorUtilities.createError("User not found", StatusCodes.NOT_FOUND);
-  }
-
-  let vinResult;
-  try {
-    vinResult = await verifyVIN(vin);
-  } catch (error: any) {
-    if (error?.isOperational && error.statusCode === StatusCodes.BAD_REQUEST) {
-      throw errorUtilities.createError(VIN_UNVERIFIED_MESSAGE, StatusCodes.BAD_REQUEST);
-    }
-    throw error;
-  }
-
-  return {
-    nameMatches: namesMatch(
-      {
-        firstName: user.get("firstName") as string | null,
-        middleName: user.get("middleName") as string | null,
-        lastName: user.get("lastName") as string | null,
-      },
-      { firstName: vinResult.firstName, lastName: vinResult.lastName },
-    ),
-  };
-};
-
-/**
- * Transaction 2: re-lock, re-check (a second tab may have submitted, or the
- * draft may have been edited while the DVP call was in flight), then record
- * the VIN outcome on the User and flip the application — all or nothing.
- */
-const finalizeSubmission = (applicantId: string, vin: string, nameMatches: boolean) =>
-  database.transaction(async (transaction) => {
-    const application = assertDraftApplication(
-      await findApplicationForUpdate(applicantId, transaction),
-    );
-
-    // The VIN we verified must still be the one on the application, and the
-    // row must still be complete.
-    if (application.get("vin") !== vin) {
-      throw errorUtilities.createError(
-        "Your application changed while it was being submitted. Please review it and submit again.",
-        StatusCodes.CONFLICT,
-      );
-    }
-    assertComplete(application);
-
-    // Judges-only outcome. A mismatch never blocks, and an unverified VIN is
-    // never linked to the account's unique `vin` column.
+    // Reset to "pending" in case a prior VIN verification attempt (e.g. a
+    // never-submitted earlier draft, long since abandoned) left a stale
+    // outcome here — the queued job below is the one true source of the
+    // outcome for *this* submission.
     await User.update(
-      nameMatches
-        ? { isVinVerified: true, vinVerificationFailedReason: null, vin }
-        : { isVinVerified: false, vinVerificationFailedReason: VIN_NAME_MISMATCH_REASON },
+      { isVinVerified: null, vinVerificationFailedReason: null },
       { where: { id: applicantId }, transaction },
     );
 
@@ -178,36 +116,32 @@ const finalizeSubmission = (applicantId: string, vin: string, nameMatches: boole
 
 const submitService = errorUtilities.withServiceErrorHandling(
   async (applicantId: string, payload: Record<string, any>) => {
-    const vin = await validateDraft(applicantId, payload);
-    const { nameMatches } = await checkVin(applicantId, vin);
-
     let result: Awaited<ReturnType<typeof finalizeSubmission>> | undefined;
 
     // The 6-digit reference code is random, so a (rare) collision on its
-    // unique index rolls the transaction back; retry with a fresh code. The
-    // DVP call is not repeated.
+    // unique index rolls the transaction back; retry with a fresh code.
     for (let attempt = 1; !result; attempt++) {
       try {
-        result = await finalizeSubmission(applicantId, vin, nameMatches);
+        result = await finalizeSubmission(applicantId, payload);
       } catch (error) {
-        if (error instanceof UniqueConstraintError) {
-          if (error.fields && "vin" in error.fields) {
-            // Another account already owns this verified VIN. Distinct from
-            // "not found" on purpose; the whole transaction rolled back, so
-            // the application is still a draft.
-            throw errorUtilities.createError(VIN_TAKEN_MESSAGE, StatusCodes.BAD_REQUEST);
-          }
-          if (
-            error.fields &&
-            "referenceCode" in error.fields &&
-            attempt < MAX_REFERENCE_CODE_ATTEMPTS
-          ) {
-            continue;
-          }
+        if (
+          error instanceof UniqueConstraintError &&
+          error.fields &&
+          "referenceCode" in error.fields &&
+          attempt < MAX_REFERENCE_CODE_ATTEMPTS
+        ) {
+          continue;
         }
         throw error;
       }
     }
+
+    // Outside the transaction on purpose, same as the notification/email
+    // below: the application is already durably submitted at this point, so
+    // nothing past here may fail the request. Verifying the VIN can take
+    // up to DVP's own timeout and sometimes several retries — none of that
+    // should make the applicant wait, so it's queued, not awaited.
+    await queueVinVerification({ applicantId, vin: result.application.get("vin") as string });
 
     // Outside the transaction on purpose: createNotification swallows its
     // own errors, and a failed INSERT inside a Postgres transaction would
