@@ -28,6 +28,12 @@ export type Capability =
   | "stages.view"
   | "candidates.editDetails"
   | "candidates.viewActivity"
+  // VIN is verified in the background, never blocking submission (see
+  // vin-verification-queue.ts) — retrying it (e.g. after a DVP outage)
+  // isn't an edit to the application, so it's its own capability rather
+  // than folded into editDetails, and granted to the same roles who can
+  // already see the outcome (candidates.viewDetails).
+  | "candidates.retryVinVerification"
   // Judging — the two judge roles only. Deliberately granted to no other
   // role, including Super Admin: nobody outside the panel sees live scores.
   | "judging.access"
@@ -92,6 +98,12 @@ export const PERMISSIONS: Record<Capability, readonly AdminRole[]> = {
   ],
   "candidates.editDetails": [AdminRole.SuperAdmin, AdminRole.Admin],
   "candidates.viewActivity": [AdminRole.SuperAdmin, AdminRole.Admin],
+  "candidates.retryVinVerification": [
+    AdminRole.SuperAdmin,
+    AdminRole.Admin,
+    AdminRole.Judge,
+    AdminRole.HeadJudge,
+  ],
 
   "judging.access": [AdminRole.Judge, AdminRole.HeadJudge],
   "judging.score": [AdminRole.Judge, AdminRole.HeadJudge],

@@ -14,6 +14,7 @@ import updateProfile from "./controllers/update-profile";
 import updateDetails from "./controllers/update-details";
 import documentSignature from "./controllers/document-signature";
 import saveDocument from "./controllers/save-document";
+import retryVinVerification from "./controllers/retry-vin-verification";
 
 const router = express.Router();
 
@@ -102,6 +103,13 @@ router.patch(
   validateParams(idParamSchema),
   validate(draftSchema),
   updateDetails,
+);
+router.post(
+  "/:id/retry-vin-verification",
+  authenticateAdmin,
+  requireCapability("candidates.retryVinVerification"),
+  validateParams(idParamSchema),
+  retryVinVerification,
 );
 router.post(
   "/:id/document-signature",
