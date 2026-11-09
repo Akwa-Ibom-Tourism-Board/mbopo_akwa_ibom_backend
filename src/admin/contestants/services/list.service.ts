@@ -38,6 +38,7 @@ const listContestantsService = errorUtilities.withServiceErrorHandling(
       userWhere[Op.or] = [
         { firstName: { [Op.iLike]: term } },
         { lastName: { [Op.iLike]: term } },
+        { email: { [Op.iLike]: term } },
       ];
     }
     const users = await User.findAll({ where: userWhere });

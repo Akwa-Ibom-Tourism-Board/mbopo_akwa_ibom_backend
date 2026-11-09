@@ -19,8 +19,15 @@ export type Capability =
   // whether they ever finish. Customer Service can see but not manage.
   | "applicants.view"
   | "applicants.manage"
-  // Contestants — only fully-submitted applications. Customer Service
-  // deliberately has none of these.
+  // The unified Participants view (src/admin/participants) — one detail
+  // page reachable from the Candidates/Applicants/Contestants tabs alike.
+  // Route-level gate only: who's even allowed to call the endpoint.
+  // Field-level redaction inside it still runs through the candidates.*
+  // capabilities below, and a Judge/Head Judge/Media viewer is additionally
+  // refused any record that isn't a submitted Contestant — see
+  // participants/services/get-one.service.ts.
+  | "participants.view"
+  // Contestants — only fully-submitted applications.
   | "candidates.view"
   | "candidates.editPublicProfile"
   | "candidates.viewIdentity"
@@ -71,6 +78,15 @@ export const PERMISSIONS: Record<Capability, readonly AdminRole[]> = {
   ],
   "applicants.manage": [AdminRole.SuperAdmin, AdminRole.Admin],
 
+  "participants.view": [
+    AdminRole.SuperAdmin,
+    AdminRole.Admin,
+    AdminRole.CustomerService,
+    AdminRole.Media,
+    AdminRole.Judge,
+    AdminRole.HeadJudge,
+  ],
+
   "candidates.view": [
     AdminRole.SuperAdmin,
     AdminRole.Admin,
@@ -84,11 +100,16 @@ export const PERMISSIONS: Record<Capability, readonly AdminRole[]> = {
     AdminRole.Media,
   ],
   "candidates.viewIdentity": [AdminRole.SuperAdmin, AdminRole.Admin],
+  // Customer Service gained this alongside the unified Participants view —
+  // they need the full application (not just name/photo) to follow up with
+  // someone before the deadline, same reason they already hold
+  // applicants.view. They still never get viewIdentity (raw NIN/VIN).
   "candidates.viewDetails": [
     AdminRole.SuperAdmin,
     AdminRole.Admin,
     AdminRole.Judge,
     AdminRole.HeadJudge,
+    AdminRole.CustomerService,
   ],
   "stages.view": [
     AdminRole.SuperAdmin,

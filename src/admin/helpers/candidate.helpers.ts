@@ -10,28 +10,40 @@ import { AdminRole } from "../users/AdminUser";
  * tiers, gated by the existing candidates.* capabilities (see rbac.ts):
  *  - candidates.view only (Media): name/photo/location/stage — nothing
  *    about the application itself.
- *  - + candidates.viewDetails (Judge/Head Judge/Admin/Super Admin): the
- *    full application — contact info, background, media, story.
+ *  - + candidates.viewDetails (Judge/Head Judge/Admin/Super Admin/Customer
+ *    Service): the full application — contact info, background, media,
+ *    story.
  *  - + candidates.viewIdentity (Admin/Super Admin only): raw NIN/VIN and
  *    the submit-time VIN verification outcome.
+ *
+ * `application` is nullable so this also serves the unified Participants
+ * view (src/admin/participants) for someone who registered but never
+ * started an application at all — every Application-sourced field below
+ * just comes back null in that case, same as any other unfilled field.
  */
 export function serializeCandidateForViewer(
   user: User,
-  application: Application,
+  application: Application | null,
   viewerRole: AdminRole | null | undefined,
 ) {
-  const json: any = application.toJSON();
+  const json: any = application?.toJSON() ?? {};
   const userJson: any = user.toJSON();
   const name = [userJson.firstName, userJson.lastName].filter(Boolean).join(" ");
 
   const base = {
-    id: json.id,
-    applicantId: json.applicantId,
+    // Application id — null until one exists. The applicant/user id below
+    // is the stable identifier across their whole lifecycle (registered →
+    // drafting → submitted) and what the unified Participants route is
+    // keyed on; this one is only for the contestant-only action routes
+    // (edit details, documents, profile) that operate on the Application.
+    id: json.id ?? null,
+    applicantId: userJson.id,
     name,
     photo: userJson.avatarUrl ?? null,
     lga: json.localGovernment ?? null,
     senatorialDistrict: senatorialDistrictOf(json.localGovernment),
-    status: json.status,
+    // null = never started an application at all, distinct from "draft".
+    status: json.status ?? null,
     referenceCode: json.referenceCode ?? null,
     submittedAt: json.submittedAt ?? null,
     voteCount: json.voteCount ?? 0,
@@ -68,6 +80,7 @@ export function serializeCandidateForViewer(
     middleName: userJson.middleName ?? null,
     gender: userJson.gender ?? null,
     dateOfBirth: userJson.dateOfBirth ?? null,
+    email: userJson.email ?? null,
     phone: json.phone ?? null,
     maritalStatus: json.maritalStatus ?? null,
     socialMedia: json.socialMedia ?? null,
