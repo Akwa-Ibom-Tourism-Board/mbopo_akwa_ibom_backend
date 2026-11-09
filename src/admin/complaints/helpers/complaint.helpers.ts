@@ -1,5 +1,5 @@
 import { Op } from "sequelize";
-import { Message } from "../../../messages/Message";
+import { Message, MessageSource } from "../../../messages/Message";
 import { MessageReply } from "../../../messages/MessageReply";
 import { ComplainantReply } from "../../../messages/ComplainantReply";
 import { User } from "../../../auth/User";
@@ -77,19 +77,25 @@ export async function serializeComplaint(
     id: json.id,
     subject: json.title || "General enquiry",
     source: isRegisteredEmail ? ("contestant" as const) : ("public" as const),
-    // Distinct from the field above: whether this complaint arrived via
-    // the "Ask Me" widget or was fetched from mail sent straight to
-    // info@akhtdc.com.ng.
-    channel: json.source as "widget" | "email",
+    // Distinct from the field above: whether this complaint arrived via the
+    // "Ask Me" widget, was fetched from mail sent straight to
+    // info@akhtdc.com.ng, or was started by staff from the Participants view.
+    channel: json.source as "widget" | "email" | "admin",
     complainantName: json.name,
     complainantEmail: json.email,
     status: json.status,
     assignedToId: json.assignedToId ?? undefined,
     createdAt: json.createdAt,
     updatedAt: json.updatedAt,
-    messages: [complainantMessage, ...complainantFollowUps, ...replyMessages].sort((a, b) =>
-      String(a.at).localeCompare(String(b.at)),
-    ),
+    // A staff-started thread (source: "admin") has no real opening message
+    // from the participant — Message.message there is just a placeholder
+    // note, not something to show as if they wrote it. The thread starts
+    // with the staff reply instead.
+    messages: [
+      ...(json.source === MessageSource.Admin ? [] : [complainantMessage]),
+      ...complainantFollowUps,
+      ...replyMessages,
+    ].sort((a, b) => String(a.at).localeCompare(String(b.at))),
   };
 }
 

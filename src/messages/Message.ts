@@ -16,6 +16,9 @@ export interface MessageAttachment {
 export enum MessageSource {
   Widget = "widget",
   Email = "email",
+  // Started by staff from the admin Participants view (see
+  // admin/participants/services/message.service.ts), not by the applicant.
+  Admin = "admin",
 }
 
 export interface MessageAttributes {

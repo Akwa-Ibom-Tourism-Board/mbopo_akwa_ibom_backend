@@ -27,6 +27,12 @@ export type Capability =
   // refused any record that isn't a submitted Contestant — see
   // participants/services/get-one.service.ts.
   | "participants.view"
+  // Start a direct email conversation with a participant from their unified
+  // detail page — same mechanism as a complaint reply (see
+  // admin/participants/services/message.service.ts), just a different entry
+  // point. Same roster as complaints.respond: judges and Media have no
+  // reason to be emailing applicants directly.
+  | "participants.message"
   // Contestants — only fully-submitted applications.
   | "candidates.view"
   | "candidates.editPublicProfile"
@@ -85,6 +91,11 @@ export const PERMISSIONS: Record<Capability, readonly AdminRole[]> = {
     AdminRole.Media,
     AdminRole.Judge,
     AdminRole.HeadJudge,
+  ],
+  "participants.message": [
+    AdminRole.SuperAdmin,
+    AdminRole.Admin,
+    AdminRole.CustomerService,
   ],
 
   "candidates.view": [
