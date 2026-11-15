@@ -1,5 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import jwtUtilities, { TokenDuration, TokenPayload } from "../../configurations/jwt";
+import jwtUtilities, {
+  TokenDuration,
+  TokenPayload,
+} from "../../configurations/jwt";
 import { hashToken } from "../../auth/auth.helpers";
 import { AdminUser, AdminRole } from "../users/AdminUser";
 
@@ -30,20 +33,29 @@ const authenticateAdmin = async (
 ): Promise<any> => {
   try {
     const authorizationHeader = request.headers.authorization;
-    const refreshToken = request.headers["x-refresh-token"] as string | undefined;
+    const refreshToken = request.headers["x-refresh-token"] as
+      | string
+      | undefined;
 
     if (!authorizationHeader) {
-      return response.status(401).json({ status: "error", message: "Please login again" });
+      return response
+        .status(401)
+        .json({ status: "error", message: "Please login again" });
     }
 
     const authorizationToken = authorizationHeader.split(" ")[1];
     if (!authorizationToken) {
-      return response.status(401).json({ status: "error", message: "Login required" });
+      return response
+        .status(401)
+        .json({ status: "error", message: "Login required" });
     }
 
     let verified: AdminTokenPayload;
     try {
-      verified = jwtUtilities.verifyToken<AdminTokenPayload>(authorizationToken, "admin_access");
+      verified = jwtUtilities.verifyToken<AdminTokenPayload>(
+        authorizationToken,
+        "admin_access",
+      );
     } catch (error: any) {
       if (error.message !== "jwt expired") {
         return response
@@ -54,7 +66,10 @@ const authenticateAdmin = async (
       if (!refreshToken) {
         return response
           .status(401)
-          .json({ status: "error", message: "Refresh Token not found. Please login again." });
+          .json({
+            status: "error",
+            message: "Refresh Token not found. Please login again.",
+          });
       }
 
       let refreshVerified: AdminTokenPayload;
@@ -66,17 +81,50 @@ const authenticateAdmin = async (
       } catch {
         return response
           .status(401)
-          .json({ status: "error", message: "Refresh Token Expired. Please login again." });
+          .json({
+            status: "error",
+            message: "Refresh Token Expired. Please login again.",
+          });
       }
 
+      // const admin = await AdminUser.findByPk(refreshVerified.id);
+
+      // if (!admin || admin.get("refreshToken") !== hashToken(refreshToken)) {
+      //   return response.status(401).json({ status: "error", message: "Please login again." });
+      // }
+
       const admin = await AdminUser.findByPk(refreshVerified.id);
-      if (!admin || admin.get("refreshToken") !== hashToken(refreshToken)) {
-        return response.status(401).json({ status: "error", message: "Please login again." });
+
+      const storedRefreshToken = admin?.get("refreshToken") as
+        | string
+        | undefined;
+
+      const incomingRefreshTokenHash = hashToken(refreshToken);
+
+      const tokenMatches =
+        !!storedRefreshToken && storedRefreshToken === incomingRefreshTokenHash;
+
+      if (!admin || !tokenMatches) {
+        console.error("[ADMIN REFRESH REJECTED]", {
+          adminFound: !!admin,
+          storedRefreshTokenExists: !!storedRefreshToken,
+          refreshTokenMatches: tokenMatches,
+          timestamp: new Date().toISOString(),
+        });
+
+        return response.status(401).json({
+          status: "error",
+          message: "Please login again.",
+        });
       }
+
       if (!admin.get("active")) {
         return response
           .status(403)
-          .json({ status: "error", message: "This account has been deactivated." });
+          .json({
+            status: "error",
+            message: "This account has been deactivated.",
+          });
       }
 
       const role = admin.get("role") as AdminRole;
@@ -102,14 +150,19 @@ const authenticateAdmin = async (
     if (!admin || !admin.get("active")) {
       return response
         .status(403)
-        .json({ status: "error", message: "This account has been deactivated." });
+        .json({
+          status: "error",
+          message: "This account has been deactivated.",
+        });
     }
 
     request.adminUser = verified;
     return next();
   } catch (error: any) {
     console.error("Admin authentication error:", error.message);
-    return response.status(500).json({ status: "error", message: "Internal Server Error" });
+    return response
+      .status(500)
+      .json({ status: "error", message: "Internal Server Error" });
   }
 };
 
