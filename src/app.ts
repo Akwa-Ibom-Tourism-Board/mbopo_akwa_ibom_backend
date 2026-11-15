@@ -1,5 +1,5 @@
 import path from "path";
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import helmet from "helmet";
 import cors from "cors";
 import compression from "compression";
@@ -83,6 +83,11 @@ app.use(
     },
   }),
 );
+
+app.use("/api/v1/admin", (_req: Request, res: Response, next: NextFunction) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
 
 app.use("/api/v1", generalLimiter, rootRouter);
 
