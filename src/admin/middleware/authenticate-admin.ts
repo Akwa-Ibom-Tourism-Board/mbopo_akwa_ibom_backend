@@ -64,12 +64,10 @@ const authenticateAdmin = async (
       }
 
       if (!refreshToken) {
-        return response
-          .status(401)
-          .json({
-            status: "error",
-            message: "Refresh Token not found. Please login again.",
-          });
+        return response.status(401).json({
+          status: "error",
+          message: "Refresh Token not found. Please login again.",
+        });
       }
 
       let refreshVerified: AdminTokenPayload;
@@ -79,12 +77,10 @@ const authenticateAdmin = async (
           "admin_refresh",
         );
       } catch {
-        return response
-          .status(401)
-          .json({
-            status: "error",
-            message: "Refresh Token Expired. Please login again.",
-          });
+        return response.status(401).json({
+          status: "error",
+          message: "Refresh Token Expired. Please login again.",
+        });
       }
 
       // const admin = await AdminUser.findByPk(refreshVerified.id);
@@ -105,11 +101,32 @@ const authenticateAdmin = async (
         !!storedRefreshToken && storedRefreshToken === incomingRefreshTokenHash;
 
       if (!admin || !tokenMatches) {
+        const accessPayload: any = (() => {
+          try {
+            return JSON.parse(
+              Buffer.from(authorizationToken, "base64url").toString(),
+            );
+          } catch {
+            return {};
+          }
+        })();
+
         console.error("[ADMIN REFRESH REJECTED]", {
-          adminFound: !!admin,
-          storedRefreshTokenExists: !!storedRefreshToken,
-          refreshTokenMatches: tokenMatches,
-          timestamp: new Date().toISOString(),
+          url: request.originalUrl,
+          userAgent: request.headers["user-agent"],
+          adminId: refreshVerified.id,
+          accessIssuedAt:
+            accessPayload.iat &&
+            new Date(accessPayload.iat * 1000).toISOString(),
+          accessExpiredAt:
+            accessPayload.exp &&
+            new Date(accessPayload.exp * 1000).toISOString(),
+          refreshIssuedAt: new Date(
+            (refreshVerified as any).iat * 1000,
+          ).toISOString(),
+          adminUpdatedAt: admin?.get("updatedAt"),
+          pid: process.pid,
+          now: new Date().toISOString(),
         });
 
         return response.status(401).json({
@@ -119,12 +136,10 @@ const authenticateAdmin = async (
       }
 
       if (!admin.get("active")) {
-        return response
-          .status(403)
-          .json({
-            status: "error",
-            message: "This account has been deactivated.",
-          });
+        return response.status(403).json({
+          status: "error",
+          message: "This account has been deactivated.",
+        });
       }
 
       const role = admin.get("role") as AdminRole;
@@ -142,12 +157,10 @@ const authenticateAdmin = async (
     // Re-checked even on the common (non-refresh) path — see doc comment.
     const admin = await AdminUser.findByPk(verified.id);
     if (!admin || !admin.get("active")) {
-      return response
-        .status(403)
-        .json({
-          status: "error",
-          message: "This account has been deactivated.",
-        });
+      return response.status(403).json({
+        status: "error",
+        message: "This account has been deactivated.",
+      });
     }
 
     request.adminUser = verified;
