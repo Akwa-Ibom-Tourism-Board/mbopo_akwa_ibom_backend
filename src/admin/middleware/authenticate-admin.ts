@@ -132,14 +132,8 @@ const authenticateAdmin = async (
         { id: refreshVerified.id, role, typ: "admin_access" },
         TokenDuration.accessTokenDuration,
       );
-      const newRefreshToken = jwtUtilities.signToken(
-        { id: refreshVerified.id, role, typ: "admin_refresh" },
-        TokenDuration.refreshTokenDuration,
-      );
 
       response.setHeader("x-access-token", newAccessToken);
-      response.setHeader("x-refresh-token", newRefreshToken);
-      await admin.update({ refreshToken: hashToken(newRefreshToken) });
 
       request.adminUser = { id: refreshVerified.id, role };
       return next();
