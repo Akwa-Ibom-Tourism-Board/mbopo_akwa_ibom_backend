@@ -101,34 +101,6 @@ const authenticateAdmin = async (
         !!storedRefreshToken && storedRefreshToken === incomingRefreshTokenHash;
 
       if (!admin || !tokenMatches) {
-        const accessPayload: any = (() => {
-          try {
-            return JSON.parse(
-              Buffer.from(authorizationToken, "base64url").toString(),
-            );
-          } catch {
-            return {};
-          }
-        })();
-
-        console.error("[ADMIN REFRESH REJECTED]", {
-          url: request.originalUrl,
-          userAgent: request.headers["user-agent"],
-          adminId: refreshVerified.id,
-          accessIssuedAt:
-            accessPayload.iat &&
-            new Date(accessPayload.iat * 1000).toISOString(),
-          accessExpiredAt:
-            accessPayload.exp &&
-            new Date(accessPayload.exp * 1000).toISOString(),
-          refreshIssuedAt: new Date(
-            (refreshVerified as any).iat * 1000,
-          ).toISOString(),
-          adminUpdatedAt: admin?.get("updatedAt"),
-          pid: process.pid,
-          now: new Date().toISOString(),
-        });
-
         return response.status(401).json({
           status: "error",
           message: "Please login again.",

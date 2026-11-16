@@ -84,7 +84,7 @@ app.use(
   }),
 );
 
-app.use("/api/v1/admin", (_req: Request, res: Response, next: NextFunction) => {
+app.use("/api/v1", (_req: Request, res: Response, next: NextFunction) => {
   res.setHeader("Cache-Control", "no-store");
   next();
 });

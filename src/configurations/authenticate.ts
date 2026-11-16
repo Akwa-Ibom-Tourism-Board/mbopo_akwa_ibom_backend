@@ -19,7 +19,9 @@ const authenticate = async (
 ): Promise<any> => {
   try {
     const authorizationHeader = request.headers.authorization;
-    const refreshToken = request.headers["x-refresh-token"] as string | undefined;
+    const refreshToken = request.headers["x-refresh-token"] as
+      | string
+      | undefined;
 
     if (!authorizationHeader) {
       return response.status(401).json({
@@ -66,7 +68,16 @@ const authenticate = async (
 
       const user = await User.findByPk(refreshVerifiedUser.id);
 
-      if (!user || user.get("refreshToken") !== hashToken(refreshToken)) {
+      const storedRefreshToken = user?.get("refreshToken") as
+        | string
+        | undefined;
+
+      const incomingRefreshTokenHash = hashToken(refreshToken);
+
+      const tokenMatches =
+        !!storedRefreshToken && storedRefreshToken === incomingRefreshTokenHash;
+
+      if (!user || !tokenMatches) {
         return response.status(401).json({
           status: "error",
           message: "Please login again.",
@@ -91,15 +102,8 @@ const authenticate = async (
         { id: tokenPayload.id, typ: "access" },
         TokenDuration.accessTokenDuration,
       );
-      const newRefreshToken = jwtUtilities.signToken(
-        { id: tokenPayload.id, typ: "refresh" },
-        TokenDuration.refreshTokenDuration,
-      );
 
       response.setHeader("x-access-token", newAccessToken);
-      response.setHeader("x-refresh-token", newRefreshToken);
-
-      await user.update({ refreshToken: hashToken(newRefreshToken) });
 
       request.user = tokenPayload;
       return next();
@@ -116,10 +120,4 @@ const authenticate = async (
   }
 };
 
-export default authenticate; 
-
-
-
-
-
-
+export default authenticate;
