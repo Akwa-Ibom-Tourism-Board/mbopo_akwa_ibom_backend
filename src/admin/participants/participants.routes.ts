@@ -6,6 +6,7 @@ import authenticateAdmin from "../middleware/authenticate-admin";
 import requireCapability from "../middleware/require-capability";
 import getOne from "./controllers/get-one";
 import message from "./controllers/message";
+import getParticipantsCounts from "./controllers/get-all-count";
 
 const router = express.Router();
 
@@ -14,6 +15,13 @@ const messageSchema = Joi.object({
   subject: Joi.string().trim().min(1).max(200).required(),
   body: Joi.string().trim().min(1).max(5000).required(),
 });
+
+router.get(
+  "/counts",
+  authenticateAdmin,
+  requireCapability("participants.view"),
+  getParticipantsCounts,
+);
 
 // The unified Participants detail view is read-only here, except for
 // starting a direct message thread. Every other action that mutates
