@@ -8,9 +8,9 @@ import configurations from ".";
 // display width below for retina screens.
 // Falsy (not configured) in an environment without BACKEND_URL set — the
 // header falls back to text-only rather than emit a broken <img src="">.
-const EMAIL_LOGO_URL = configurations.BACKEND_URL
-  ? `${configurations.BACKEND_URL}/assets/mbopo-logo.png`
-  : null;
+// const EMAIL_LOGO_URL = configurations.BACKEND_URL
+//   ? `${configurations.BACKEND_URL}/assets/mbopo-logo.png`
+//   : null;
 
 /**
  * Wraps a message (and optional action button) in the branded email shell
@@ -64,17 +64,6 @@ export const wrapEmailHtml = (
                 bgcolor="#003922"
                 style="padding: 30px; color: #ffffff"
               >
-                ${
-                  EMAIL_LOGO_URL
-                    ? `<img
-                  src="${EMAIL_LOGO_URL}"
-                  alt="Mbopo Akwa Ibom"
-                  width="200"
-                  height="53"
-                  style="display: block; margin: 0 auto 12px; border: 0; max-width: 200px; height: auto"
-                />`
-                    : ""
-                }
                 <h1 style="margin: 0; font-size: 20px">Mbopo Akwa Ibom</h1>
               </td>
             </tr>
@@ -148,3 +137,15 @@ export const wrapEmailHtml = (
 export default {
   wrapEmailHtml,
 };
+
+//  ${
+//                   EMAIL_LOGO_URL
+//                     ? `<img
+//                   src="${EMAIL_LOGO_URL}"
+//                   alt="Mbopo Akwa Ibom"
+//                   width="200"
+//                   height="53"
+//                   style="display: block; margin: 0 auto 12px; border: 0; max-width: 200px; height: auto"
+//                 />`
+//                     : ""
+//                 }

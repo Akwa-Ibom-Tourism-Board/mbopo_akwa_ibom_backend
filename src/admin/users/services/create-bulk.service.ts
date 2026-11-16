@@ -12,12 +12,19 @@ import {
   assertSingleActiveHeadJudge,
 } from "../../helpers/admin-users.helpers";
 import { recordActivity } from "../../helpers/activity.helpers";
+import { sendAdminWelcomeEmail } from "../../helpers/auth-email.helpers";
 
-// Per-row try/catch so one bad email in a batch doesn't abort the rest —
-// mirrors the admin frontend's own bulk-add dummy implementation.
+
 const createAdminUsersBulkService = errorUtilities.withServiceErrorHandling(
-  async (actorId: string, actorRole: AdminRole, inputs: NewAdminUserInput[]) => {
-    const created: ReturnType<typeof serializeAdminUser>[] = [];
+  async (
+    actorId: string,
+    actorRole: AdminRole,
+    inputs: NewAdminUserInput[],
+  ) => {
+    const created: (ReturnType<typeof serializeAdminUser> & {
+      temporaryPassword: string;
+      emailQueued: boolean;
+    })[] = [];
     const failed: { email: string; reason: string }[] = [];
 
     for (const input of inputs) {
@@ -35,7 +42,18 @@ const createAdminUsersBulkService = errorUtilities.withServiceErrorHandling(
           passwordHash: await hashData(temporaryPassword),
         } as any);
 
-        created.push({ ...serializeAdminUser(admin), temporaryPassword } as any);
+        const emailQueued = await sendAdminWelcomeEmail({
+          firstName: input.firstName,
+          email: input.email,
+          role: input.role,
+          temporaryPassword,
+        });
+
+        created.push({
+          ...serializeAdminUser(admin),
+          temporaryPassword,
+          emailQueued,
+        } as any);
       } catch (error: any) {
         const reason =
           error instanceof UniqueConstraintError
@@ -46,13 +64,21 @@ const createAdminUsersBulkService = errorUtilities.withServiceErrorHandling(
     }
 
     if (created.length) {
-      await recordActivity(actorId, "users", `Added ${created.length} staff account(s) in bulk`);
+      await recordActivity(
+        actorId,
+        "users",
+        `Added ${created.length} staff account(s) in bulk`,
+      );
     }
 
-    return responseUtilities.handleServicesResponse(StatusCodes.OK, "Bulk add complete", {
-      created,
-      failed,
-    });
+    return responseUtilities.handleServicesResponse(
+      StatusCodes.OK,
+      "Bulk add complete",
+      {
+        created,
+        failed,
+      },
+    );
   },
 );
 

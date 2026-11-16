@@ -12,6 +12,7 @@ import {
   mapUniqueConstraintError,
 } from "../../helpers/admin-users.helpers";
 import { recordActivity } from "../../helpers/activity.helpers";
+import { sendAdminWelcomeEmail } from "../../helpers/auth-email.helpers";
 
 const createAdminUserService = errorUtilities.withServiceErrorHandling(
   async (actorId: string, actorRole: AdminRole, input: NewAdminUserInput) => {
@@ -35,10 +36,17 @@ const createAdminUserService = errorUtilities.withServiceErrorHandling(
         "users",
         `Created ${input.role} account for ${input.firstName} ${input.lastName}`,
       );
+      const emailQueued = await sendAdminWelcomeEmail({
+        firstName: input.firstName,
+        email: input.email,
+        role: input.role,
+        temporaryPassword,
+      });
 
       return responseUtilities.handleServicesResponse(StatusCodes.CREATED, "Admin user created", {
         ...serializeAdminUser(admin),
         temporaryPassword,
+        emailQueued,
       });
     } catch (error) {
       mapUniqueConstraintError(error);

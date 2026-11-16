@@ -7,6 +7,7 @@ const {
   DEV_CLOUDINARY_CLOUD_NAME,
   DEV_CLOUDINARY_API_KEY,
   DEV_CLOUDINARY_API_SECRET,
+  ADMIN_FRONTEND_URL,
 } = process.env;
 
 console.log("Running in development mode");
@@ -16,6 +17,7 @@ export default {
   DATABASE_URL: DEV_DATABASE_URL,
   REDIS_URL: DEV_REDIS_URL,
   FRONTEND_URL: DEV_FRONTEND_URL,
+  ADMIN_FRONTEND_URL,
   // Falls back to localhost:DEV_PORT so a fresh dev checkout works without
   // this being set explicitly — unlike production, where BACKEND_URL has
   // no fallback and must be the real deployed URL.
