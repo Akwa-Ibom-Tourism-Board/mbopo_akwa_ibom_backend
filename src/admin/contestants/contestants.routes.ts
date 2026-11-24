@@ -15,6 +15,7 @@ import updateDetails from "./controllers/update-details";
 import documentSignature from "./controllers/document-signature";
 import saveDocument from "./controllers/save-document";
 import retryVinVerification from "./controllers/retry-vin-verification";
+import { MAX_LIMIT } from "../helpers/pagination.helpers";
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ const listQuerySchema = Joi.object({
     .valid(...AKWA_IBOM_LGAS)
     .optional(),
   page: Joi.number().integer().min(1).optional(),
-  limit: Joi.number().integer().min(1).max(200).optional(),
+  limit: Joi.number().integer().min(1).max(MAX_LIMIT).optional(),
 });
 
 const YOUTUBE_URL_PATTERN = /^https:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/;

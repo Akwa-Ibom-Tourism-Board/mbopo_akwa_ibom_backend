@@ -1,5 +1,5 @@
-const DEFAULT_LIMIT = 100;
-const MAX_LIMIT = 1000;
+export const DEFAULT_LIMIT = 200;
+export const MAX_LIMIT = 500;
 
 export interface PageParams {
   page: number;

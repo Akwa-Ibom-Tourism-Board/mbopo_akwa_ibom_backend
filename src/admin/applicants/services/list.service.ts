@@ -3,9 +3,15 @@ import errorUtilities from "../../../configurations/error-handler";
 import responseUtilities from "../../../configurations/response";
 import { StatusCodes } from "../../../configurations/statusCodes";
 import { User } from "../../../auth/User";
-import { Application, ApplicationStatus } from "../../../applicants/application/Application";
+import {
+  Application,
+  ApplicationStatus,
+} from "../../../applicants/application/Application";
 import { serializeApplicant } from "../../helpers/applicant.helpers";
-import { parsePageParams, buildPageMeta } from "../../helpers/pagination.helpers";
+import {
+  parsePageParams,
+  buildPageMeta,
+} from "../../helpers/pagination.helpers";
 
 export interface ApplicantListQuery {
   search?: string;
@@ -25,13 +31,19 @@ const applicantIdsForStatus = async (
 
   if (status === "not_started") {
     const started = await Application.findAll({ attributes: ["applicantId"] });
-    const startedIds = new Set(started.map((row) => row.get("applicantId") as string));
+    const startedIds = new Set(
+      started.map((row) => row.get("applicantId") as string),
+    );
     const allUsers = await User.findAll({ attributes: ["id"] });
-    return allUsers.map((u) => u.get("id") as string).filter((id) => !startedIds.has(id));
+    return allUsers
+      .map((u) => u.get("id") as string)
+      .filter((id) => !startedIds.has(id));
   }
 
   const applicationStatus =
-    status === "submitted" ? ApplicationStatus.Submitted : ApplicationStatus.Draft;
+    status === "submitted"
+      ? ApplicationStatus.Submitted
+      : ApplicationStatus.Draft;
   const rows = await Application.findAll({
     where: { status: applicationStatus },
     attributes: ["applicantId"],
@@ -66,20 +78,29 @@ const listApplicantsService = errorUtilities.withServiceErrorHandling(
     });
 
     const applications = await Application.findAll({
-      where: { applicantId: { [Op.in]: users.map((u) => u.get("id") as string) } },
+      where: {
+        applicantId: { [Op.in]: users.map((u) => u.get("id") as string) },
+      },
     });
     const applicationByApplicantId = new Map(
       applications.map((app) => [app.get("applicantId") as string, app]),
     );
 
     const data = users.map((user) =>
-      serializeApplicant(user, applicationByApplicantId.get(user.get("id") as string) ?? null),
+      serializeApplicant(
+        user,
+        applicationByApplicantId.get(user.get("id") as string) ?? null,
+      ),
     );
 
-    return responseUtilities.handleServicesResponse(StatusCodes.OK, "Applicants fetched", {
-      applicants: data,
-      meta: buildPageMeta(page, limit, total),
-    });
+    return responseUtilities.handleServicesResponse(
+      StatusCodes.OK,
+      "Applicants fetched",
+      {
+        applicants: data,
+        meta: buildPageMeta(page, limit, total),
+      },
+    );
   },
 );
 

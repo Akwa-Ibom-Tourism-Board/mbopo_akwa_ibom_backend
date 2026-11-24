@@ -8,6 +8,7 @@ import list from "./controllers/list";
 import getOne from "./controllers/get-one";
 import setActive from "./controllers/set-active";
 import deleteApplicant from "./controllers/delete";
+import { MAX_LIMIT } from "../helpers/pagination.helpers";
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ const listQuerySchema = Joi.object({
   search: Joi.string().trim().max(200).allow("").optional(),
   status: Joi.string().valid("not_started", "in_progress", "submitted").optional(),
   page: Joi.number().integer().min(1).optional(),
-  limit: Joi.number().integer().min(1).max(200).optional(),
+  limit: Joi.number().integer().min(1).max(MAX_LIMIT).optional(),
 });
 
 const setActiveSchema = Joi.object({ active: Joi.boolean().required() });
