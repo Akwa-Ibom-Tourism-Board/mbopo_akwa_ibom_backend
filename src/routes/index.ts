@@ -15,6 +15,8 @@ import adminStagesRouter from "../admin/stages/stages.routes";
 import adminActivityRouter from "../admin/activity/activity.routes";
 import adminComplaintsRouter from "../admin/complaints/complaints.routes";
 import adminVotingContentRouter from "../admin/voting-content/voting-content.routes";
+import adminSettingsRouter from "../admin/settings/settings.routes";
+import registrationStatusRouter from "../registration/registration-status.routes";
 import publicRouter from "../public/public.routes";
 
 const rootRouter = Router();
@@ -35,6 +37,8 @@ rootRouter.use("/admin/stages", adminStagesRouter);
 rootRouter.use("/admin/activity", adminActivityRouter);
 rootRouter.use("/admin/complaints", adminComplaintsRouter);
 rootRouter.use("/admin/voting-content", adminVotingContentRouter);
+rootRouter.use("/admin/settings", adminSettingsRouter);
+rootRouter.use("/registration-status", registrationStatusRouter);
 rootRouter.use("/public", publicRouter);
 
 export default rootRouter;

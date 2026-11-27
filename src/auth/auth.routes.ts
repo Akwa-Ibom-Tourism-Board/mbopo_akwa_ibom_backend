@@ -6,6 +6,7 @@ import { limiter, otpResendLimiter } from "../configurations/rate-limit";
 import verifyCaptcha from "../configurations/captcha";
 import { NIGERIAN_PHONE_REGEX } from "../configurations/constants";
 import { personNameSchema } from "./auth.schemas";
+import { requireRegistrationOpenForSignup } from "../registration/registration.middleware";
 
 import register from "./controllers/register";
 import verifyEmailOtp from "./controllers/verify-email-otp";
@@ -85,7 +86,14 @@ const changePasswordSchema = Joi.object({
   newPassword: passwordSchema,
 });
 
-router.post("/register", limiter, verifyCaptcha, validate(registerSchema), register);
+router.post(
+  "/register",
+  limiter,
+  requireRegistrationOpenForSignup,
+  verifyCaptcha,
+  validate(registerSchema),
+  register,
+);
 router.post("/verify-email-otp", limiter, validate(verifyEmailOtpSchema), verifyEmailOtp);
 router.post("/resend-email-otp", otpResendLimiter, validate(resendEmailOtpSchema), resendEmailOtp);
 router.post("/login", limiter, verifyCaptcha, validate(loginSchema), login);

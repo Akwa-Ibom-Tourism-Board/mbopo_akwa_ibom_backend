@@ -4,6 +4,7 @@ import validate from "../../configurations/validate";
 import authenticate from "../../configurations/authenticate";
 import { limiter } from "../../configurations/rate-limit";
 import { personNameSchema } from "../../auth/auth.schemas";
+import { requireRegistrationOpenForContinuing } from "../../registration/registration.middleware";
 import verifyIdentity from "./controllers/verify-identity";
 
 const router = express.Router();
@@ -44,6 +45,7 @@ router.post(
   "/verify-identity",
   authenticate,
   limiter,
+  requireRegistrationOpenForContinuing,
   validate(verifyIdentitySchema),
   verifyIdentity,
 );

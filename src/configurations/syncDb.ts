@@ -12,6 +12,7 @@ import "../messages/ComplainantReply";
 import "../admin/voting-content/VoteTier";
 import "../admin/voting-content/NewsPost";
 import "../admin/voting-content/Sponsor";
+import "../registration/RegistrationSetting";
 
 export async function syncDatabases() {
   console.log("📥 Registering models...");

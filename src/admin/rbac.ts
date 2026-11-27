@@ -74,7 +74,9 @@ export type Capability =
   | "complaints.respond"
   | "complaints.reassign"
   // Audit trail
-  | "activity.view";
+  | "activity.view"
+  // Platform-wide registration open/closed toggle (Super Admin/Admin only).
+  | "registration.manage";
 
 export const PERMISSIONS: Record<Capability, readonly AdminRole[]> = {
   "applicants.view": [
@@ -170,6 +172,7 @@ export const PERMISSIONS: Record<Capability, readonly AdminRole[]> = {
   "complaints.reassign": [AdminRole.SuperAdmin, AdminRole.Admin],
 
   "activity.view": [AdminRole.SuperAdmin, AdminRole.Admin],
+  "registration.manage": [AdminRole.SuperAdmin, AdminRole.Admin],
 };
 
 // Which roles a given role may create/edit/deactivate. SuperAdmin is never

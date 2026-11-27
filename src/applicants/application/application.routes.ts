@@ -4,6 +4,7 @@ import validate from "../../configurations/validate";
 import authenticate from "../../configurations/authenticate";
 import { PHOTO_FIELDS } from "../../configurations/cloudinary";
 import { AKWA_IBOM_LGAS, MARITAL_STATUSES } from "../../configurations/constants";
+import { requireRegistrationOpenForContinuing } from "../../registration/registration.middleware";
 
 import saveDraft from "./controllers/save-draft";
 import getDraft from "./controllers/get-draft";
@@ -142,11 +143,35 @@ const photoFieldSchema = Joi.object({
   bytes: Joi.number().integer().min(0).optional(),
 });
 
-router.post("/draft", authenticate, validate(draftSchema), saveDraft);
+router.post(
+  "/draft",
+  authenticate,
+  requireRegistrationOpenForContinuing,
+  validate(draftSchema),
+  saveDraft,
+);
 router.get("/draft", authenticate, getDraft);
-router.patch("/draft", authenticate, validate(draftSchema), updateDraft);
-router.post("/photo", authenticate, validate(photoFieldSchema), uploadPhoto);
-router.post("/submit", authenticate, validate(draftSchema), submit);
+router.patch(
+  "/draft",
+  authenticate,
+  requireRegistrationOpenForContinuing,
+  validate(draftSchema),
+  updateDraft,
+);
+router.post(
+  "/photo",
+  authenticate,
+  requireRegistrationOpenForContinuing,
+  validate(photoFieldSchema),
+  uploadPhoto,
+);
+router.post(
+  "/submit",
+  authenticate,
+  requireRegistrationOpenForContinuing,
+  validate(draftSchema),
+  submit,
+);
 router.get("/", authenticate, getMine);
 
 export default router;

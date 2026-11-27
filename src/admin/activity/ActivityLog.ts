@@ -11,7 +11,8 @@ export type ActivityCategory =
   | "voting"
   | "candidates"
   | "complaints"
-  | "access";
+  | "access"
+  | "settings";
 
 export interface ActivityLogAttributes {
   id: string;
