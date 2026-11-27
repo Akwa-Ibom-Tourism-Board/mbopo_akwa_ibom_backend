@@ -7,10 +7,14 @@ import { Application, ApplicationStatus } from "../../../applicants/application/
 import { AdminRole } from "../../users/AdminUser";
 import { serializeCandidateForViewer } from "../../helpers/candidate.helpers";
 import { parsePageParams, buildPageMeta } from "../../helpers/pagination.helpers";
+import { SENATORIAL_DISTRICTS } from "../../../configurations/constants";
 
 export interface ContestantListQuery {
   search?: string;
   lga?: string;
+  district?: string;
+  phase?: string;
+  candidateStatus?: string;
   page?: unknown;
   limit?: unknown;
 }
@@ -20,8 +24,37 @@ const listContestantsService = errorUtilities.withServiceErrorHandling(
     const { page, limit, offset } = parsePageParams(query);
 
     const where: any = { status: ApplicationStatus.Submitted };
+    // Mutually exclusive in the UI (one dropdown or the other) — LGA wins if
+    // somehow both are sent, being the more specific of the two.
     if (query.lga?.trim()) {
       where.localGovernment = query.lga.trim();
+    } else if (query.district?.trim()) {
+      where.localGovernment = { [Op.in]: SENATORIAL_DISTRICTS[query.district.trim()] ?? [] };
+    }
+    if (query.phase?.trim()) {
+      where.phase = query.phase.trim();
+    }
+    if (query.candidateStatus?.trim()) {
+      where.candidateStatus = query.candidateStatus.trim();
+    }
+
+    // Resolve a search term to matching User ids *before* paginating, so a
+    // match outside the current page still surfaces — searching a name/email
+    // against only whatever page was already fetched (by submittedAt, not by
+    // relevance) would silently hide real matches on other pages.
+    if (query.search?.trim()) {
+      const term = `%${query.search.trim()}%`;
+      const matchingUsers = await User.findAll({
+        where: {
+          [Op.or]: [
+            { firstName: { [Op.iLike]: term } },
+            { lastName: { [Op.iLike]: term } },
+            { email: { [Op.iLike]: term } },
+          ],
+        },
+        attributes: ["id"],
+      });
+      where.applicantId = { [Op.in]: matchingUsers.map((u) => u.get("id")) };
     }
 
     const { rows: applications, count: total } = await Application.findAndCountAll({
@@ -32,23 +65,9 @@ const listContestantsService = errorUtilities.withServiceErrorHandling(
     });
 
     const applicantIds = applications.map((app) => app.get("applicantId") as string);
-    const userWhere: any = { id: { [Op.in]: applicantIds } };
-    if (query.search?.trim()) {
-      const term = `%${query.search.trim()}%`;
-      userWhere[Op.or] = [
-        { firstName: { [Op.iLike]: term } },
-        { lastName: { [Op.iLike]: term } },
-        { email: { [Op.iLike]: term } },
-      ];
-    }
-    const users = await User.findAll({ where: userWhere });
+    const users = await User.findAll({ where: { id: { [Op.in]: applicantIds } } });
     const userById = new Map(users.map((user) => [user.get("id") as string, user]));
 
-    // The search filter is applied on User, after Application is already
-    // paginated — a search hit can land on a page with fewer than `limit`
-    // visible rows. Acceptable here: Contestants search is a convenience
-    // filter over an already-small, post-LGA-selection set, not a
-    // correctness-critical listing the way Applicants' is.
     const data = applications
       .map((application) => {
         const user = userById.get(application.get("applicantId") as string);

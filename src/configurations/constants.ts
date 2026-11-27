@@ -50,7 +50,7 @@ export const MARITAL_STATUSES = [
 // senatorialDistrictOf() as undefined. Shared by the admin (candidates) and
 // public (voting) features — lives here, not in either feature's own
 // helpers, so neither depends on the other for it.
-const SENATORIAL_DISTRICTS: Record<string, readonly string[]> = {
+export const SENATORIAL_DISTRICTS: Record<string, readonly string[]> = {
   "Akwa Ibom North-East": [
     "Etinan",
     "Ibesikpo Asutan",

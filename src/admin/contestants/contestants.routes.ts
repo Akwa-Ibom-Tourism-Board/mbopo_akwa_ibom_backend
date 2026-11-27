@@ -4,10 +4,13 @@ import { validateQuery, validateParams } from "../../configurations/validate";
 import validate from "../../configurations/validate";
 import authenticateAdmin from "../middleware/authenticate-admin";
 import requireCapability from "../middleware/require-capability";
-import { AKWA_IBOM_LGAS } from "../../configurations/constants";
+import { AKWA_IBOM_LGAS, SENATORIAL_DISTRICTS } from "../../configurations/constants";
 import { PHOTO_FIELDS } from "../../configurations/cloudinary";
 import { draftSchema } from "../../applicants/application/application.routes";
+import { ALL_PHASE_IDS } from "../judging/phases.config";
+import { CandidateJudgingStatus } from "../../applicants/application/Application";
 import list from "./controllers/list";
+import stats from "./controllers/stats";
 import getOne from "./controllers/get-one";
 import photoSignature from "./controllers/photo-signature";
 import updateProfile from "./controllers/update-profile";
@@ -25,6 +28,15 @@ const listQuerySchema = Joi.object({
   search: Joi.string().trim().max(200).allow("").optional(),
   lga: Joi.string()
     .valid(...AKWA_IBOM_LGAS)
+    .optional(),
+  district: Joi.string()
+    .valid(...Object.keys(SENATORIAL_DISTRICTS))
+    .optional(),
+  phase: Joi.string()
+    .valid(...ALL_PHASE_IDS)
+    .optional(),
+  candidateStatus: Joi.string()
+    .valid(...Object.values(CandidateJudgingStatus))
     .optional(),
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(MAX_LIMIT).optional(),
@@ -68,6 +80,13 @@ const saveDocumentSchema = Joi.object({
 // (Media included) — field-level redaction down to what each role may
 // actually see happens inside serializeCandidateForViewer, not via
 // separate routes per tier.
+// Registered before "/:id" so it isn't swallowed by the param route.
+router.get(
+  "/stats",
+  authenticateAdmin,
+  requireCapability("candidates.view"),
+  stats,
+);
 router.get(
   "/",
   authenticateAdmin,
