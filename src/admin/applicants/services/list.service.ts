@@ -3,11 +3,12 @@ import errorUtilities from "../../../configurations/error-handler";
 import responseUtilities from "../../../configurations/response";
 import { StatusCodes } from "../../../configurations/statusCodes";
 import { User } from "../../../auth/User";
-import {
-  Application,
-  ApplicationStatus,
-} from "../../../applicants/application/Application";
+import { Application } from "../../../applicants/application/Application";
 import { serializeApplicant } from "../../helpers/applicant.helpers";
+import {
+  applicantIdsForStatus,
+  type ApplicantFilterStatus,
+} from "../../helpers/applicant-progress.helpers";
 import {
   parsePageParams,
   buildPageMeta,
@@ -15,41 +16,10 @@ import {
 
 export interface ApplicantListQuery {
   search?: string;
-  status?: "not_started" | "in_progress" | "submitted";
+  status?: ApplicantFilterStatus;
   page?: unknown;
   limit?: unknown;
 }
-
-// No Sequelize associations are defined anywhere in this codebase (every
-// other feature joins manually) — matching that convention rather than
-// introducing `include` here. The status filter resolves to a plain set of
-// applicantIds first, so pagination on User still stays correct.
-const applicantIdsForStatus = async (
-  status: ApplicantListQuery["status"],
-): Promise<string[] | null> => {
-  if (!status) return null;
-
-  if (status === "not_started") {
-    const started = await Application.findAll({ attributes: ["applicantId"] });
-    const startedIds = new Set(
-      started.map((row) => row.get("applicantId") as string),
-    );
-    const allUsers = await User.findAll({ attributes: ["id"] });
-    return allUsers
-      .map((u) => u.get("id") as string)
-      .filter((id) => !startedIds.has(id));
-  }
-
-  const applicationStatus =
-    status === "submitted"
-      ? ApplicationStatus.Submitted
-      : ApplicationStatus.Draft;
-  const rows = await Application.findAll({
-    where: { status: applicationStatus },
-    attributes: ["applicantId"],
-  });
-  return rows.map((row) => row.get("applicantId") as string);
-};
 
 const listApplicantsService = errorUtilities.withServiceErrorHandling(
   async (query: ApplicantListQuery) => {

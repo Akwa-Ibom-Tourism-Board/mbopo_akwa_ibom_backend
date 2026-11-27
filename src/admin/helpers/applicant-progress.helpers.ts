@@ -1,6 +1,39 @@
 import { User } from "../../auth/User";
 import { Application, ApplicationStatus } from "../../applicants/application/Application";
 
+export type ApplicantFilterStatus = "not_started" | "in_progress" | "submitted";
+
+/**
+ * Shared by the Applicants list and the contacts-export endpoint — resolves
+ * a cohort name to the concrete set of User ids it covers, so both stay in
+ * sync with exactly one definition of what "not started"/"in progress"/
+ * "submitted" means.
+ */
+export async function applicantIdsForStatus(
+  status: ApplicantFilterStatus | undefined,
+): Promise<string[] | null> {
+  if (!status) return null;
+
+  if (status === "not_started") {
+    const started = await Application.findAll({ attributes: ["applicantId"] });
+    const startedIds = new Set(
+      started.map((row) => row.get("applicantId") as string),
+    );
+    const allUsers = await User.findAll({ attributes: ["id"] });
+    return allUsers
+      .map((u) => u.get("id") as string)
+      .filter((id) => !startedIds.has(id));
+  }
+
+  const applicationStatus =
+    status === "submitted" ? ApplicationStatus.Submitted : ApplicationStatus.Draft;
+  const rows = await Application.findAll({
+    where: { status: applicationStatus },
+    attributes: ["applicantId"],
+  });
+  return rows.map((row) => row.get("applicantId") as string);
+}
+
 /**
  * Mirrors the frontend registration wizard's own step shape exactly
  * (mbopo_akwa_ibom_design/src/features/mbopo-registration/schema.ts's

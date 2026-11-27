@@ -4,9 +4,11 @@ import { validateParams } from "../../configurations/validate";
 import validate from "../../configurations/validate";
 import authenticateAdmin from "../middleware/authenticate-admin";
 import requireCapability from "../middleware/require-capability";
+import { validateQuery } from "../../configurations/validate";
 import getOne from "./controllers/get-one";
 import message from "./controllers/message";
 import getParticipantsCounts from "./controllers/get-all-count";
+import getContacts from "./controllers/contacts";
 
 const router = express.Router();
 
@@ -15,12 +17,28 @@ const messageSchema = Joi.object({
   subject: Joi.string().trim().min(1).max(200).required(),
   body: Joi.string().trim().min(1).max(5000).required(),
 });
+const contactsQuerySchema = Joi.object({
+  status: Joi.string().valid("not_started", "in_progress", "submitted").optional(),
+  step: Joi.number().integer().min(1).max(5).optional(),
+});
 
 router.get(
   "/counts",
   authenticateAdmin,
   requireCapability("participants.view"),
   getParticipantsCounts,
+);
+
+// Bulk contact export (copy emails/phone numbers) — gated to
+// applicants.manage (Super Admin/Admin only), a stronger bar than the
+// read-only participants.view every other route here uses, since this
+// hands back raw PII in bulk rather than one record at a time.
+router.get(
+  "/contacts",
+  authenticateAdmin,
+  requireCapability("applicants.manage"),
+  validateQuery(contactsQuerySchema),
+  getContacts,
 );
 
 // The unified Participants detail view is read-only here, except for
