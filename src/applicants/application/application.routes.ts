@@ -102,7 +102,12 @@ export const applicationSubmitSchema = Joi.object({
   talents: Joi.string().trim().required(),
   languages: Joi.string().trim().required(),
   why: Joi.string().trim().required(),
-  vin: Joi.string().trim().length(19).alphanum().uppercase().required(),
+  // Optional at submit, unlike every other field here — a candidate without
+  // a VIN can still submit; admin/judges simply see "no VIN" instead of a
+  // verification outcome (see submit.service.ts, which only queues a DVP
+  // check when one was actually provided). Shape-only validation (19
+  // alphanumeric chars) still applies whenever one is given — inherited
+  // as-is from draftFieldSchema's own vin rule above, not overridden here.
   localGovernment: Joi.string().trim().valid(...AKWA_IBOM_LGAS).required(),
   declarationIdentity: Joi.boolean().valid(true).required(),
   declarationAccuracy: Joi.boolean().valid(true).required(),

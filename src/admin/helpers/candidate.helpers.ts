@@ -12,9 +12,10 @@ import { AdminRole } from "../users/AdminUser";
  *    about the application itself.
  *  - + candidates.viewDetails (Judge/Head Judge/Admin/Super Admin/Customer
  *    Service): the full application — contact info, background, media,
- *    story.
- *  - + candidates.viewIdentity (Admin/Super Admin only): raw NIN/VIN and
- *    the submit-time VIN verification outcome.
+ *    story, the VIN as entered (draftVin) and its verification outcome.
+ *  - + candidates.viewIdentity (Admin/Super Admin only): raw NIN, and the
+ *    separately-confirmed `vin` an applicant now owns once verification
+ *    actually succeeds.
  *
  * `application` is nullable so this also serves the unified Participants
  * view (src/admin/participants) for someone who registered but never
@@ -105,14 +106,19 @@ export function serializeCandidateForViewer(
     fullImageUrl: json.fullImageUrl ?? null,
     fullImageUrl2: json.fullImageUrl2 ?? null,
     videoPitchUrl: json.videoPitchUrl ?? null,
-    // VIN is no longer verified synchronously at submit — it's checked
-    // afterwards, in the background (see vin-verification-queue.ts), and
-    // never blocks submission. The *outcome* (verified / failed + why) is a
-    // judging signal, so it lives in the viewDetails tier like the rest of
-    // judging state above — but the raw VIN digits themselves stay
-    // Admin/Super-Admin-only, below.
+    // VIN is optional and is no longer verified synchronously at submit —
+    // it's checked afterwards, in the background (see
+    // vin-verification-queue.ts), and never blocks submission. The
+    // *outcome* (verified / failed + why) and the VIN *as entered* are both
+    // a judging signal — Admin/Judge/Head Judge all need to see "no VIN",
+    // "has a VIN but it's unverified", or "verified" at a glance, so both
+    // live in the viewDetails tier. Only the separately-confirmed, *owned*
+    // `User.vin` (set once verification actually succeeds) stays
+    // Admin/Super-Admin-only, below — that one doubles as a raw identity
+    // document in a way the as-entered draft value doesn't.
     isVinVerified: userJson.isVinVerified ?? null,
     vinVerificationFailedReason: userJson.vinVerificationFailedReason ?? null,
+    draftVin: json.vin ?? null,
   };
 
   if (!hasCapability("candidates.viewIdentity")) {
@@ -123,6 +129,5 @@ export function serializeCandidateForViewer(
     ...details,
     nin: userJson.nin ?? null,
     vin: userJson.vin ?? null,
-    draftVin: json.vin ?? null,
   };
 }

@@ -18,6 +18,8 @@ import updateDetails from "./controllers/update-details";
 import documentSignature from "./controllers/document-signature";
 import saveDocument from "./controllers/save-document";
 import retryVinVerification from "./controllers/retry-vin-verification";
+import setVinReason from "./controllers/set-vin-reason";
+import exportUnverifiedVin from "./controllers/export-unverified-vin";
 import { MAX_LIMIT } from "../helpers/pagination.helpers";
 
 const router = express.Router();
@@ -76,16 +78,26 @@ const saveDocumentSchema = Joi.object({
   publicId: Joi.string().required(),
 });
 
+const vinReasonSchema = Joi.object({
+  reason: Joi.string().trim().max(1000).allow("", null).required(),
+});
+
 // "candidates.view" is the broadest of the three candidate capabilities
 // (Media included) — field-level redaction down to what each role may
 // actually see happens inside serializeCandidateForViewer, not via
 // separate routes per tier.
-// Registered before "/:id" so it isn't swallowed by the param route.
+// Registered before "/:id" so neither is swallowed by the param route.
 router.get(
   "/stats",
   authenticateAdmin,
   requireCapability("candidates.view"),
   stats,
+);
+router.get(
+  "/export-unverified-vin",
+  authenticateAdmin,
+  requireCapability("candidates.editDetails"),
+  exportUnverifiedVin,
 );
 router.get(
   "/",
@@ -130,6 +142,14 @@ router.post(
   requireCapability("candidates.retryVinVerification"),
   validateParams(idParamSchema),
   retryVinVerification,
+);
+router.patch(
+  "/:id/vin-reason",
+  authenticateAdmin,
+  requireCapability("candidates.editDetails"),
+  validateParams(idParamSchema),
+  validate(vinReasonSchema),
+  setVinReason,
 );
 router.post(
   "/:id/document-signature",

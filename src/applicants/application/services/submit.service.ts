@@ -140,8 +140,14 @@ const submitService = errorUtilities.withServiceErrorHandling(
     // below: the application is already durably submitted at this point, so
     // nothing past here may fail the request. Verifying the VIN can take
     // up to DVP's own timeout and sometimes several retries — none of that
-    // should make the applicant wait, so it's queued, not awaited.
-    await queueVinVerification({ applicantId, vin: result.application.get("vin") as string });
+    // should make the applicant wait, so it's queued, not awaited. VIN is
+    // optional now — someone who submitted without one stays at
+    // isVinVerified: null ("no VIN") forever, rather than queuing a check
+    // against an empty string.
+    const vin = result.application.get("vin") as string | null;
+    if (vin) {
+      await queueVinVerification({ applicantId, vin });
+    }
 
     // Outside the transaction on purpose: createNotification swallows its
     // own errors, and a failed INSERT inside a Postgres transaction would

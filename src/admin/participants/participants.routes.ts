@@ -9,6 +9,7 @@ import getOne from "./controllers/get-one";
 import message from "./controllers/message";
 import getParticipantsCounts from "./controllers/get-all-count";
 import getContacts from "./controllers/contacts";
+import exportParticipants from "./controllers/export";
 
 const router = express.Router();
 
@@ -20,6 +21,9 @@ const messageSchema = Joi.object({
 const contactsQuerySchema = Joi.object({
   status: Joi.string().valid("not_started", "in_progress", "submitted").optional(),
   step: Joi.number().integer().min(1).max(5).optional(),
+});
+const exportQuerySchema = Joi.object({
+  status: Joi.string().valid("not_started", "in_progress", "submitted").optional(),
 });
 
 router.get(
@@ -39,6 +43,16 @@ router.get(
   requireCapability("applicants.manage"),
   validateQuery(contactsQuerySchema),
   getContacts,
+);
+
+// Full-detail Excel download — same cohort filter and the same capability
+// bar as /contacts above, just every field instead of two.
+router.get(
+  "/export",
+  authenticateAdmin,
+  requireCapability("applicants.manage"),
+  validateQuery(exportQuerySchema),
+  exportParticipants,
 );
 
 // The unified Participants detail view is read-only here, except for
